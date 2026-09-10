@@ -1,0 +1,260 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------
+   KESI Design Tokens
+   Palette drawn from the Katutubo Excel Schools mark: a forest-green
+   sprout breaking out of an open book, rendered in warm charcoal ink.
+   Light mode reads like good paper; dark mode reads like a study lamp
+   left on late — never a flat black.
+------------------------------------------------------------------------ */
+
+:root {
+  color-scheme: light;
+
+  /* Neutrals — warm paper, not cold gray */
+  --paper: #faf6ee;
+  --paper-raised: #ffffff;
+  --paper-sunken: #f1ead9;
+  --ink: #262420;
+  --ink-soft: #55503f;
+  --ink-faint: #8a8371;
+  --line: #e1d7c0;
+  --line-strong: #cabb96;
+
+  /* Brand */
+  --sprout-50: #f2f6ec;
+  --sprout-100: #dfe9cd;
+  --sprout-200: #c2d6a2;
+  --sprout-300: #a0bf76;
+  --sprout-400: #7fa653;
+  --sprout-500: #5f8a3a;
+  --sprout-600: #4a6f2d;
+  --sprout-700: #3a5824;
+  --sprout-800: #2c4319;
+  --sprout-900: #1f3010;
+
+  /* Accent — harvest gold, used sparingly for highlights & warnings-adjacent emphasis */
+  --harvest-400: #e0a63f;
+  --harvest-500: #c98a2c;
+  --harvest-600: #a76d1e;
+
+  /* Status */
+  --status-good: #3a7a3f;
+  --status-good-bg: #e7f1e2;
+  --status-warn: #b5791c;
+  --status-warn-bg: #faedd3;
+  --status-bad: #a3362a;
+  --status-bad-bg: #f8e4de;
+  --status-neutral: #6b6455;
+  --status-neutral-bg: #efe9d9;
+
+  --surface: var(--paper);
+  --surface-raised: var(--paper-raised);
+  --surface-sunken: var(--paper-sunken);
+  --text: var(--ink);
+  --text-soft: var(--ink-soft);
+  --text-faint: var(--ink-faint);
+  --border: var(--line);
+  --border-strong: var(--line-strong);
+  --brand: var(--sprout-600);
+  --brand-strong: var(--sprout-700);
+  --brand-soft: var(--sprout-100);
+  --ring: var(--sprout-500);
+  --accent: var(--harvest-500);
+
+  --shadow-color: 38 30 15;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --paper: #191a15;
+    --paper-raised: #212219;
+    --paper-sunken: #14150f;
+    --ink: #f1ede0;
+    --ink-soft: #c9c2ab;
+    --ink-faint: #8d8770;
+    --line: #34362a;
+    --line-strong: #454735;
+
+    --sprout-100: #253320;
+    --sprout-500: #7fa653;
+    --sprout-600: #93bc63;
+    --sprout-700: #a8cc7c;
+
+    --status-good: #8fc373;
+    --status-good-bg: #22301d;
+    --status-warn: #e0ab52;
+    --status-warn-bg: #392c15;
+    --status-bad: #e08b7c;
+    --status-bad-bg: #3a201a;
+    --status-neutral: #b3ac96;
+    --status-neutral-bg: #26271d;
+
+    --surface: var(--paper);
+    --surface-raised: var(--paper-raised);
+    --surface-sunken: var(--paper-sunken);
+    --text: var(--ink);
+    --text-soft: var(--ink-soft);
+    --text-faint: var(--ink-faint);
+    --border: var(--line);
+    --border-strong: var(--line-strong);
+    --brand: var(--sprout-600);
+    --brand-strong: var(--sprout-700);
+    --brand-soft: var(--sprout-100);
+    --ring: var(--sprout-500);
+
+    --shadow-color: 0 0 0;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --paper: #191a15;
+  --paper-raised: #212219;
+  --paper-sunken: #14150f;
+  --ink: #f1ede0;
+  --ink-soft: #c9c2ab;
+  --ink-faint: #8d8770;
+  --line: #34362a;
+  --line-strong: #454735;
+
+  --sprout-100: #253320;
+  --sprout-500: #7fa653;
+  --sprout-600: #93bc63;
+  --sprout-700: #a8cc7c;
+
+  --status-good: #8fc373;
+  --status-good-bg: #22301d;
+  --status-warn: #e0ab52;
+  --status-warn-bg: #392c15;
+  --status-bad: #e08b7c;
+  --status-bad-bg: #3a201a;
+  --status-neutral: #b3ac96;
+  --status-neutral-bg: #26271d;
+
+  --surface: var(--paper);
+  --surface-raised: var(--paper-raised);
+  --surface-sunken: var(--paper-sunken);
+  --text: var(--ink);
+  --text-soft: var(--ink-soft);
+  --text-faint: var(--ink-faint);
+  --border: var(--line);
+  --border-strong: var(--line-strong);
+  --brand: var(--sprout-600);
+  --brand-strong: var(--sprout-700);
+  --brand-soft: var(--sprout-100);
+  --ring: var(--sprout-500);
+
+  --shadow-color: 0 0 0;
+}
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-text: var(--text);
+  --color-text-soft: var(--text-soft);
+  --color-text-faint: var(--text-faint);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-soft: var(--brand-soft);
+  --color-ring: var(--ring);
+  --color-accent: var(--accent);
+
+  --color-status-good: var(--status-good);
+  --color-status-good-bg: var(--status-good-bg);
+  --color-status-warn: var(--status-warn);
+  --color-status-warn-bg: var(--status-warn-bg);
+  --color-status-bad: var(--status-bad);
+  --color-status-bad-bg: var(--status-bad-bg);
+  --color-status-neutral: var(--status-neutral);
+  --color-status-neutral-bg: var(--status-neutral-bg);
+
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-karla);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--sprout-200, #c2d6a2);
+  color: var(--sprout-900, #1f3010);
+}
+
+/* Subtle paper-grain texture used on marketing surfaces only */
+.bg-grain {
+  position: relative;
+  isolation: isolate;
+}
+.bg-grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.5;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+    color: black;
+  }
+}
+
+@keyframes kesi-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-kesi-rise {
+  animation: kesi-rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes kesi-grow {
+  0% {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.animate-kesi-grow {
+  transform-origin: bottom;
+  animation: kesi-grow 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}

@@ -1,0 +1,136 @@
+# Supabase backend — setup guide
+
+Everything the app needs lives in `supabase/migrations/` (schema, RLS, views)
+and `supabase/seed/` (reference data + the teacher import script). This
+walks through standing up a fresh Supabase project and wiring the app to it.
+
+## 1. Create the project
+
+1. Go to [supabase.com](https://supabase.com/) → New Project.
+2. Pick a name (e.g. `kesi-grades`), a strong database password (save it —
+   you won't see it again), and a region close to the Philippines
+   (Singapore is usually the best latency).
+3. Wait for provisioning (~2 minutes).
+
+## 2. Run the migrations
+
+Open **SQL Editor** in the Supabase dashboard and run each file in
+`supabase/migrations/` **in order** — paste the contents of one file, run
+it, then move to the next:
+
+1. `0001_schema.sql` — core tables (schools, grade levels, subjects,
+   teachers, students, class assignments, school years/quarters).
+2. `0002_attendance_and_grades.sql` — attendance and grade tables.
+3. `0003_views.sql` — computed views (quarterly grades, attendance
+   summaries, weekly-entry compliance).
+4. `0004_rls.sql` — row-level security policies (this is what keeps a
+   regular teacher from seeing another teacher's students).
+5. `0005_seed_reference_data.sql` — the 5 schools, 7 grade levels, 8
+   subjects, and the 2026–2027 school year/quarters from your calendar.
+6. `0006_teacher_privilege_guard.sql` — a safety trigger that stops a head
+   teacher from promoting someone (or themselves) to master admin or moving
+   a teacher between schools; only master admin can do that.
+
+If you prefer the CLI instead of pasting into the dashboard:
+
+```bash
+npx supabase login
+npx supabase link --project-ref <your-project-ref>
+npx supabase db push
+```
+
+(`db push` applies every file under `supabase/migrations/` in filename
+order — that's why they're numbered.)
+
+## 3. Turn off public sign-ups
+
+Teachers are provisioned by you (via the import script below), not by
+self-registration. In the dashboard: **Authentication → Providers → Email**
+→ turn **off** "Allow new users to sign up". Email confirmation can also be
+turned off since you're creating accounts directly with a known email and a
+temporary password (the import script sets `email_confirm: true` anyway, so
+this mostly matters if you ever create a user by hand in the dashboard).
+
+## 4. Collect your API keys
+
+**Project Settings → API**:
+- `Project URL` → `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_URL`
+- `anon` `public` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `service_role` key → `SUPABASE_SERVICE_ROLE_KEY` — **never** put this in a
+  `NEXT_PUBLIC_*` variable or commit it; it bypasses every RLS policy. It's
+  only used by the teacher import script, the pre-login directory API
+  route, and the WhatsApp webhook — all server-only code.
+
+Copy `.env.example` to `.env.local` and fill these in.
+
+## 5. Import your teachers
+
+1. Copy `supabase/seed/teachers.template.csv` to `supabase/seed/teachers.csv`
+   and replace it with your real roster. Columns:
+   - `full_name`, `email`, `temp_password` — their login. Tell them to
+     change the password after first login.
+   - `school_slug` — one of `agbalite`, `binuangan`, `pinagbayanan`,
+     `sulong-ipil`, `baraas` (blank for the master admin row).
+   - `is_head_teacher`, `is_master_admin` — `true`/`false`.
+   - `whatsapp_number` — E.164 format (`+639171234567`), optional, needed
+     only if they'll use the WhatsApp integration.
+   - `grade_codes` — semicolon-separated grade codes they teach (`KA`, `KB`,
+     `G1`–`G5`). Leave blank for head teachers/admin (they see everything
+     in their school already).
+   - `subject_codes` — semicolon-separated subject codes (`bible`, `math`,
+     `english`, `filipino`, `science`, `social_studies`, `music_arts`,
+     `pe_health`). A homeroom teacher covering every subject for their
+     grade(s) lists all eight.
+2. Run it:
+   ```bash
+   SUPABASE_URL=https://xxxx.supabase.co \
+   SUPABASE_SERVICE_ROLE_KEY=eyJ... \
+   npm run seed:teachers -- supabase/seed/teachers.csv
+   ```
+3. Re-running is safe — it matches existing teachers by email and updates
+   them instead of creating duplicates.
+
+## 6. Deploy the app
+
+Any Next.js host works (Vercel is the simplest — `vercel.com`, import the
+repo, it auto-detects Next.js). Set these environment variables on the
+host:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- The `WHATSAPP_*` variables once you've done the WhatsApp setup (see
+  `docs/WHATSAPP_INTEGRATION.md`) — the app runs fine without them, it just
+  logs instead of sending.
+
+## 7. Sanity-check RLS
+
+After importing a couple of teachers, log in as a regular (non-head) teacher
+and confirm they only see their own students on `/students`. Then log in as
+a head teacher and confirm they see the whole school. If a regular teacher
+can see students outside their assigned grade, something's off with the
+`class_subject_teachers` rows for them — check `/school` (as a head teacher
+or master admin) to see/fix the assignment.
+
+## 8. Updating the school calendar
+
+If a quarter date changes (e.g. the Q2 exam-week collision with Christmas
+break flagged in `docs/DEPED_COMPLIANCE.md`), edit the `quarters` table
+directly in the Supabase Table Editor, or via SQL:
+
+```sql
+update quarters
+set exam_week_start = '2026-12-15', exam_week_end = '2026-12-18'
+where school_year_id = (select id from school_years where label = '2026-2027')
+  and number = 2;
+```
+
+## 9. Rolling into a new school year
+
+Insert a new `school_years` row with `is_current = true` (the unique index
+`one_current_school_year` automatically means you must first set the old
+year's `is_current` to `false` in the same transaction), then insert its
+four `quarters` rows and a `grade_weight_configs` row, same shape as
+`0005_seed_reference_data.sql`. Existing students keep their history because
+grades/attendance are keyed by `school_year_id`, not overwritten.

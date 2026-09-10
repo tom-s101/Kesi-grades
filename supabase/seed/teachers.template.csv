@@ -1,0 +1,5 @@
+full_name,email,temp_password,school_slug,is_head_teacher,is_master_admin,whatsapp_number,grade_codes,subject_codes
+Juana Dela Cruz,juana.delacruz@example.com,ChangeMe123!,agbalite,false,false,+639171234567,G1;G2,bible;math;english;filipino;science;social_studies;music_arts;pe_health
+Maria Santos,maria.santos@example.com,ChangeMe123!,agbalite,true,false,+639171234568,KA;KB;G1;G2;G3;G4;G5,
+Rosario Reyes,rosario.reyes@example.com,ChangeMe123!,binuangan,false,false,,G3,bible;math;english;filipino;science;social_studies;music_arts;pe_health
+Admin User,admin@katutuboexcel.edu.ph,ChangeMe123!,,false,true,,,
