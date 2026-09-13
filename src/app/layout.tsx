@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Karla, JetBrains_Mono } from "next/font/google";
 import { ThemeScript } from "@/components/theme/theme-script";
+import { TestingModeBanner } from "@/components/testing-mode-banner";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -51,6 +52,7 @@ export default function RootLayout({
       <body
         className={`${fraunces.variable} ${karla.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
+        <TestingModeBanner />
         {children}
       </body>
     </html>

@@ -5,6 +5,12 @@ const PUBLIC_EXACT_PATHS = ["/", "/login"];
 const PUBLIC_PREFIXES = ["/api/whatsapp", "/api/auth/"];
 
 export async function updateSession(request: NextRequest) {
+  // TESTING ONLY: DISABLE_AUTH skips the login gate entirely — see
+  // src/lib/supabase/server.ts and docs/SUPABASE_SETUP.md.
+  if (process.env.DISABLE_AUTH === "true") {
+    return NextResponse.next({ request });
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
