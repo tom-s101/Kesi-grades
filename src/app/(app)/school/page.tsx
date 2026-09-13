@@ -38,12 +38,18 @@ export default async function SchoolAdminPage({
     );
   }
 
-  const [{ data: sgl }, { data: assignments }, { data: teachers }] = await Promise.all([
+  const [{ data: sgl }, { data: sections }, { data: assignments }, { data: teachers }] = await Promise.all([
     supabase
       .from("school_grade_levels")
       .select("*")
       .eq("school_id", activeSchool.id)
       .eq("school_year_id", schoolYear.id),
+    supabase
+      .from("class_sections")
+      .select("*")
+      .eq("school_id", activeSchool.id)
+      .eq("school_year_id", schoolYear.id)
+      .order("sort_order"),
     supabase
       .from("class_subject_teachers")
       .select("*")
@@ -64,6 +70,7 @@ export default async function SchoolAdminPage({
           subjects={subjects}
           schoolYearId={schoolYear.id}
           gradeLevelActive={sgl ?? []}
+          sections={sections ?? []}
           assignments={assignments ?? []}
           teachers={teachers ?? []}
         />

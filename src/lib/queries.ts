@@ -40,11 +40,13 @@ export type TeacherAssignment = {
   id: string;
   school_id: string;
   grade_level_id: string;
+  section_id: string;
   subject_id: string;
   school_year_id: string;
   teacher_id: string;
   grade_levels: { code: string; name: string; sort_order: number } | null;
   subjects: { code: string; name: string; sort_order: number } | null;
+  class_sections: { name: string } | null;
 };
 
 /** Grade levels + subjects a given teacher is assigned to (RLS lets anyone read this table). */
@@ -52,7 +54,7 @@ export async function getTeacherAssignments(teacherId: string): Promise<TeacherA
   const supabase = await createClient();
   const { data } = await supabase
     .from("class_subject_teachers")
-    .select("*, grade_levels(code, name, sort_order), subjects(code, name, sort_order)")
+    .select("*, grade_levels(code, name, sort_order), subjects(code, name, sort_order), class_sections(name)")
     .eq("teacher_id", teacherId);
   return (data ?? []) as unknown as TeacherAssignment[];
 }
@@ -60,6 +62,7 @@ export async function getTeacherAssignments(teacherId: string): Promise<TeacherA
 export type StudentWithMeta = import("@/lib/types").Student & {
   grade_levels: { code: string; name: string } | null;
   schools: { name: string } | null;
+  class_sections: { name: string } | null;
 };
 
 /** Students visible to the current session (RLS already scopes this). */
@@ -70,12 +73,26 @@ export async function getVisibleStudents(filters?: {
   const supabase = await createClient();
   let query = supabase
     .from("students")
-    .select("*, grade_levels(code, name), schools(name)")
+    .select("*, grade_levels(code, name), schools(name), class_sections(name)")
     .order("last_name");
   if (filters?.schoolId) query = query.eq("school_id", filters.schoolId);
   if (filters?.gradeLevelId) query = query.eq("current_grade_level_id", filters.gradeLevelId);
   const { data } = await query;
   return (data ?? []) as unknown as StudentWithMeta[];
+}
+
+/** Sections that exist at a school for the given year — every grade, unless gradeLevelId narrows it. */
+export async function getSections(schoolId: string, schoolYearId: string, gradeLevelId?: string) {
+  const supabase = await createClient();
+  let query = supabase
+    .from("class_sections")
+    .select("*")
+    .eq("school_id", schoolId)
+    .eq("school_year_id", schoolYearId)
+    .order("sort_order");
+  if (gradeLevelId) query = query.eq("grade_level_id", gradeLevelId);
+  const { data } = await query;
+  return data ?? [];
 }
 
 export async function getAttendanceSummaries(schoolYearId: string) {

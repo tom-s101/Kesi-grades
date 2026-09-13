@@ -22,7 +22,7 @@ export default async function GradesPage({
   if (teacher.is_master_admin || teacher.is_head_teacher) {
     const query = supabase
       .from("class_subject_teachers")
-      .select("*, grade_levels(code, name, sort_order), subjects(code, name, sort_order)")
+      .select("*, grade_levels(code, name, sort_order), subjects(code, name, sort_order), class_sections(name)")
       .order("school_id");
     const scoped = teacher.is_master_admin ? query : query.eq("school_id", teacher.school_id ?? "");
     const { data } = await scoped;
@@ -58,8 +58,7 @@ export default async function GradesPage({
   const { data: students } = await supabase
     .from("students")
     .select("id, first_name, middle_name, last_name")
-    .eq("school_id", activeAssignment.school_id)
-    .eq("current_grade_level_id", activeAssignment.grade_level_id)
+    .eq("section_id", activeAssignment.section_id)
     .eq("status", "active")
     .order("last_name");
 
@@ -91,8 +90,11 @@ export default async function GradesPage({
         <GradeEntryClient
           assignments={assignments.map((a) => ({
             id: a.id,
-            label: `${a.grade_levels?.name} — ${a.subjects?.name}`,
+            label: `${a.grade_levels?.name}${
+              a.class_sections?.name && a.class_sections.name !== "Main" ? ` (${a.class_sections.name})` : ""
+            } — ${a.subjects?.name}`,
             gradeLevelId: a.grade_level_id,
+            sectionId: a.section_id,
             subjectId: a.subject_id,
             schoolId: a.school_id,
           }))}

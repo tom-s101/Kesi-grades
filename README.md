@@ -41,12 +41,15 @@ Other docs:
 - **`teachers`** — one row per login, linked 1:1 to a Supabase Auth user.
   `is_head_teacher` grants full visibility/edit within their own school;
   `is_master_admin` grants it organization-wide.
-- **`class_subject_teachers`** — who teaches what: (school, grade, subject)
-  → teacher, per school year. Reassigning a class or merging two grades
-  under one teacher is just updating this table (the `/school` admin page
-  does this with dropdowns).
-- **`students`** — one row per learner, with a current grade level. History
-  across years lives in `student_enrollments`.
+- **`class_sections`** — a grade can be split into more than one class
+  (e.g. two Kindergarten A classes with different teachers); every grade
+  gets a default "Main" section, and `/school` admin lets you add another.
+- **`class_subject_teachers`** — who teaches what: (school, grade, section,
+  subject) → teacher, per school year. Reassigning a class or merging two
+  grades under one teacher is just updating this table (the `/school`
+  admin page does this with dropdowns).
+- **`students`** — one row per learner, with a current grade level and
+  section. History across years lives in `student_enrollments`.
 - **`attendance_records`** — one row per student per school day per session
   (AM/PM; Fridays are AM-only, enforced by a database trigger).
 - **`weekly_scores`** — quiz and homework/participation entries, one row
@@ -58,12 +61,14 @@ Other docs:
   average live, so changing a single quiz score instantly updates every
   downstream number (dashboards, report cards, exports).
 
-All of the above is protected by row-level security (`0004_rls.sql`): a
-regular teacher's queries are automatically scoped to their assigned
-classes by Postgres itself, not by application code remembering to filter —
-the same guarantee holds whether the request comes from the web app, the
-WhatsApp webhook, or someone querying the database directly with a teacher's
-credentials.
+All of the above is protected by row-level security (`0004_rls.sql`,
+tightened to the section level in `0009_class_sections.sql`): a regular
+teacher's queries are automatically scoped to their assigned section(s) by
+Postgres itself, not by application code remembering to filter — the same
+guarantee holds whether the request comes from the web app, the WhatsApp
+webhook, or someone querying the database directly with a teacher's
+credentials. Two teachers assigned to different sections of the same grade
+never see each other's students.
 
 ## Project layout
 

@@ -30,6 +30,15 @@ it, then move to the next:
 6. `0006_teacher_privilege_guard.sql` — a safety trigger that stops a head
    teacher from promoting someone (or themselves) to master admin or moving
    a teacher between schools; only master admin can do that.
+7. `0007_student_demographic_fields.sql` — parent names, mother tongue,
+   IP group, religion, home address (matches a typical SF1 register).
+8. `0008_student_edit_permissions.sql` — lets any teacher who can see a
+   student fix a typo in their name/info; grade, section, school, and
+   status stay locked to the head teacher/master admin.
+9. `0009_class_sections.sql` — adds "classes" (sections): lets a grade be
+   split between two teachers (e.g. two Kindergarten A classes), each only
+   seeing their own half. Every grade gets a default "Main" section
+   automatically.
 
 If you prefer the CLI instead of pasting into the dashboard:
 
@@ -63,8 +72,16 @@ this mostly matters if you ever create a user by hand in the dashboard).
 
 Copy `.env.example` to `.env.local` and fill these in.
 
-## 5. Import your teachers
+## 5. Add your teachers
 
+**The easiest way** (no terminal needed): log in as master admin (or a
+head teacher, for their own school), go to **School Admin**, and use the
+**Add teacher** button — it creates their login and roster entry directly
+from the browser. Good for one-off additions and for anyone who doesn't
+have Node/the repo set up locally.
+
+**For a big bulk import** (e.g. onboarding every school at once), the CSV
+script is faster:
 1. Copy `supabase/seed/teachers.template.csv` to `supabase/seed/teachers.csv`
    and replace it with your real roster. Columns:
    - `full_name`, `email`, `temp_password` — their login. Tell them to
@@ -81,7 +98,10 @@ Copy `.env.example` to `.env.local` and fill these in.
      `english`, `filipino`, `science`, `social_studies`, `music_arts`,
      `pe_health`). A homeroom teacher covering every subject for their
      grade(s) lists all eight.
-2. Run it:
+   - `section_name` — which class, if the grade is split between two
+     teachers (e.g. `A` / `B`). Leave as `Main` (or blank) when a grade
+     has only one class.
+2. Run it (requires Node and a local clone of the repo):
    ```bash
    SUPABASE_URL=https://xxxx.supabase.co \
    SUPABASE_SERVICE_ROLE_KEY=eyJ... \
@@ -92,9 +112,8 @@ Copy `.env.example` to `.env.local` and fill these in.
 
 ## 6. Deploy the app
 
-Any Next.js host works (Vercel is the simplest — `vercel.com`, import the
-repo, it auto-detects Next.js). Set these environment variables on the
-host:
+Any Next.js host works (Vercel or Netlify both auto-detect Next.js from
+the repo). Set these environment variables on the host:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`

@@ -2,13 +2,23 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Pencil, Plus, UserPlus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Select } from "@/components/ui/input";
+import { Input, Label, Select } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { reassignClass, setGradeLevelActive, setTeacherActive } from "@/app/(app)/school/actions";
-import type { GradeLevel, School, Subject, Teacher } from "@/lib/types";
+import {
+  addSection,
+  createTeacher,
+  reassignClass,
+  renameSection,
+  renameTeacher,
+  setGradeLevelActive,
+  setTeacherActive,
+} from "@/app/(app)/school/actions";
+import type { ClassSection, GradeLevel, School, Subject, Teacher } from "@/lib/types";
 
-type Assignment = { grade_level_id: string; subject_id: string; teacher_id: string };
+type Assignment = { id: string; grade_level_id: string; section_id: string; subject_id: string; teacher_id: string };
 type GradeActive = { grade_level_id: string; is_active: boolean };
 
 export function SchoolAdminClient({
@@ -19,6 +29,7 @@ export function SchoolAdminClient({
   subjects,
   schoolYearId,
   gradeLevelActive,
+  sections,
   assignments,
   teachers,
 }: {
@@ -29,19 +40,21 @@ export function SchoolAdminClient({
   subjects: Subject[];
   schoolYearId: string;
   gradeLevelActive: GradeActive[];
+  sections: ClassSection[];
   assignments: Assignment[];
   teachers: Teacher[];
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
+
   const [activeMap, setActiveMap] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(gradeLevels.map((g) => [g.id, gradeLevelActive.find((a) => a.grade_level_id === g.id)?.is_active ?? true])),
   );
+  const [sectionList, setSectionList] = useState<ClassSection[]>(sections);
   const [assignMap, setAssignMap] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      assignments.map((a) => [`${a.grade_level_id}:${a.subject_id}`, a.teacher_id]),
-    ),
+    Object.fromEntries(assignments.map((a) => [`${a.section_id}:${a.subject_id}`, a.teacher_id])),
   );
+  const [newSectionDrafts, setNewSectionDrafts] = useState<Record<string, string>>({});
 
   function toggleGrade(gradeLevelId: string) {
     const next = !activeMap[gradeLevelId];
@@ -51,10 +64,43 @@ export function SchoolAdminClient({
     });
   }
 
-  function changeTeacher(gradeLevelId: string, subjectId: string, teacherId: string) {
-    setAssignMap((m) => ({ ...m, [`${gradeLevelId}:${subjectId}`]: teacherId }));
+  function changeTeacher(sectionId: string, subjectId: string, teacherId: string) {
+    const section = sectionList.find((s) => s.id === sectionId);
+    if (!section) return;
+    setAssignMap((m) => ({ ...m, [`${sectionId}:${subjectId}`]: teacherId }));
     startTransition(async () => {
-      await reassignClass({ schoolId: activeSchoolId, gradeLevelId, subjectId, schoolYearId, teacherId });
+      await reassignClass({
+        schoolId: activeSchoolId,
+        gradeLevelId: section.grade_level_id,
+        sectionId,
+        subjectId,
+        schoolYearId,
+        teacherId,
+      });
+    });
+  }
+
+  async function handleAddSection(gradeLevelId: string) {
+    const name = (newSectionDrafts[gradeLevelId] ?? "").trim();
+    if (!name) return;
+    const existingForGrade = sectionList.filter((s) => s.grade_level_id === gradeLevelId);
+    const result = await addSection({
+      schoolId: activeSchoolId,
+      gradeLevelId,
+      schoolYearId,
+      name,
+      sortOrder: existingForGrade.length + 1,
+    });
+    if (result.section) {
+      setSectionList((list) => [...list, result.section as ClassSection]);
+      setNewSectionDrafts((d) => ({ ...d, [gradeLevelId]: "" }));
+    }
+  }
+
+  function handleRenameSection(sectionId: string, name: string) {
+    setSectionList((list) => list.map((s) => (s.id === sectionId ? { ...s, name } : s)));
+    startTransition(async () => {
+      await renameSection(sectionId, name);
     });
   }
 
@@ -108,49 +154,76 @@ export function SchoolAdminClient({
 
       <Card>
         <CardHeader>
-          <CardTitle>Class assignments</CardTitle>
+          <CardTitle>Classes &amp; teachers</CardTitle>
           <CardDescription>
-            Reassign a subject to a different teacher, or give the same teacher two grade levels to merge classes.
+            Add a second class under a grade to split it between two teachers — each only sees their own class&rsquo;s
+            students.
           </CardDescription>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-text-faint">
-                <th className="py-2 pr-4 font-medium">Grade</th>
-                <th className="py-2 pr-4 font-medium">Subject</th>
-                <th className="py-2 font-medium">Teacher</th>
-              </tr>
-            </thead>
-            <tbody>
-              {gradeLevels
-                .filter((g) => activeMap[g.id])
-                .flatMap((g) =>
-                  subjects.map((subj) => (
-                    <tr key={`${g.id}:${subj.id}`} className="border-b border-border last:border-0">
-                      <td className="py-2 pr-4 text-text-soft">{g.name}</td>
-                      <td className="py-2 pr-4 text-text-soft">{subj.name}</td>
-                      <td className="py-2">
-                        <Select
-                          className="max-w-[220px]"
-                          value={assignMap[`${g.id}:${subj.id}`] ?? ""}
-                          onChange={(e) => changeTeacher(g.id, subj.id, e.target.value)}
-                        >
-                          <option value="" disabled>
-                            Unassigned
-                          </option>
-                          {teachers.map((t) => (
-                            <option key={t.id} value={t.id}>
-                              {t.full_name}
-                            </option>
-                          ))}
-                        </Select>
-                      </td>
-                    </tr>
-                  )),
-                )}
-            </tbody>
-          </table>
+        <CardContent className="space-y-6">
+          {gradeLevels
+            .filter((g) => activeMap[g.id])
+            .map((g) => {
+              const gradeSections = sectionList
+                .filter((s) => s.grade_level_id === g.id)
+                .sort((a, b) => a.sort_order - b.sort_order);
+              return (
+                <div key={g.id} className="space-y-3">
+                  <p className="font-display text-base font-medium text-text">{g.name}</p>
+                  <div className="space-y-3">
+                    {gradeSections.map((section) => (
+                      <div key={section.id} className="rounded-lg border border-border p-3">
+                        <input
+                          defaultValue={section.name}
+                          onBlur={(e) => {
+                            if (e.target.value.trim() && e.target.value !== section.name) {
+                              handleRenameSection(section.id, e.target.value.trim());
+                            }
+                          }}
+                          className="mb-2 rounded-md border border-transparent bg-transparent px-1 text-sm font-semibold text-text hover:border-border-strong focus-visible:border-border-strong focus-visible:outline-none"
+                        />
+                        <table className="w-full text-sm">
+                          <tbody>
+                            {subjects.map((subj) => (
+                              <tr key={subj.id} className="border-b border-border last:border-0">
+                                <td className="py-1.5 pr-4 text-text-soft">{subj.name}</td>
+                                <td className="py-1.5">
+                                  <Select
+                                    className="max-w-[220px]"
+                                    value={assignMap[`${section.id}:${subj.id}`] ?? ""}
+                                    onChange={(e) => changeTeacher(section.id, subj.id, e.target.value)}
+                                  >
+                                    <option value="" disabled>
+                                      Unassigned
+                                    </option>
+                                    {teachers.map((t) => (
+                                      <option key={t.id} value={t.id}>
+                                        {t.full_name}
+                                      </option>
+                                    ))}
+                                  </Select>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="New class name, e.g. Section B"
+                      value={newSectionDrafts[g.id] ?? ""}
+                      onChange={(e) => setNewSectionDrafts((d) => ({ ...d, [g.id]: e.target.value }))}
+                      className="max-w-[220px]"
+                    />
+                    <Button type="button" variant="secondary" size="sm" onClick={() => handleAddSection(g.id)}>
+                      <Plus size={14} /> Add another class
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
         </CardContent>
       </Card>
 
@@ -158,24 +231,139 @@ export function SchoolAdminClient({
         <CardHeader>
           <CardTitle>Teachers at this school</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
-          {teachers.map((t) => (
-            <div key={t.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-text">{t.full_name}</span>
-                {t.is_head_teacher && <Badge tone="brand">Head Teacher</Badge>}
-                {!t.active && <Badge tone="neutral">Inactive</Badge>}
-              </div>
-              <button
-                onClick={() => toggleTeacherActive(t.id, !t.active)}
-                className="text-xs font-medium text-brand hover:underline"
-              >
-                {t.active ? "Deactivate" : "Reactivate"}
-              </button>
-            </div>
-          ))}
+        <CardContent className="space-y-4">
+          <AddTeacherForm schoolId={activeSchoolId} isMasterAdmin={isMasterAdmin} />
+          <div className="space-y-2">
+            {teachers.map((t) => (
+              <TeacherRow key={t.id} teacher={t} onToggleActive={toggleTeacherActive} />
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function TeacherRow({
+  teacher,
+  onToggleActive,
+}: {
+  teacher: Teacher;
+  onToggleActive: (id: string, active: boolean) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(teacher.full_name);
+  const [pending, startTransition] = useTransition();
+
+  function save() {
+    const trimmed = name.trim();
+    if (!trimmed || trimmed === teacher.full_name) {
+      setEditing(false);
+      return;
+    }
+    startTransition(async () => {
+      await renameTeacher(teacher.id, trimmed);
+      setEditing(false);
+    });
+  }
+
+  return (
+    <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+      <div className="flex items-center gap-2">
+        {editing ? (
+          <Input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={save}
+            onKeyDown={(e) => e.key === "Enter" && save()}
+            className="h-8 max-w-[220px]"
+            disabled={pending}
+          />
+        ) : (
+          <button
+            onClick={() => setEditing(true)}
+            className="inline-flex items-center gap-1.5 font-medium text-text hover:text-brand"
+          >
+            {teacher.full_name}
+            <Pencil size={12} className="text-text-faint" />
+          </button>
+        )}
+        {teacher.is_head_teacher && <Badge tone="brand">Head Teacher</Badge>}
+        {!teacher.active && <Badge tone="neutral">Inactive</Badge>}
+      </div>
+      <button
+        onClick={() => onToggleActive(teacher.id, !teacher.active)}
+        className="text-xs font-medium text-brand hover:underline"
+      >
+        {teacher.active ? "Deactivate" : "Reactivate"}
+      </button>
+    </div>
+  );
+}
+
+function AddTeacherForm({ schoolId, isMasterAdmin }: { schoolId: string; isMasterAdmin: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+
+  function handleSubmit(formData: FormData) {
+    startTransition(async () => {
+      const result = await createTeacher({}, formData);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setError(null);
+        setOpen(false);
+        router.refresh();
+      }
+    });
+  }
+
+  if (!open) {
+    return (
+      <Button type="button" variant="secondary" onClick={() => setOpen(true)}>
+        <UserPlus size={15} /> Add teacher
+      </Button>
+    );
+  }
+
+  return (
+    <form action={handleSubmit} className="space-y-3 rounded-lg border border-border-strong bg-surface-sunken p-4">
+      <input type="hidden" name="school_id" value={schoolId} />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="full_name">Full name</Label>
+          <Input id="full_name" name="full_name" required />
+        </div>
+        <div>
+          <Label htmlFor="email">Email (their login)</Label>
+          <Input id="email" name="email" type="email" required />
+        </div>
+        <div>
+          <Label htmlFor="password">Temporary password</Label>
+          <Input id="password" name="password" type="text" minLength={8} required placeholder="At least 8 characters" />
+        </div>
+        {isMasterAdmin && (
+          <div className="flex items-end pb-2">
+            <label className="flex items-center gap-2 text-sm text-text">
+              <input type="checkbox" name="is_head_teacher" className="h-4 w-4 rounded border-border-strong" />
+              Head teacher for this school
+            </label>
+          </div>
+        )}
+      </div>
+      {error && <p className="text-sm text-status-bad">{error}</p>}
+      <div className="flex gap-2">
+        <Button type="submit" disabled={pending}>
+          {pending ? "Adding…" : "Add teacher"}
+        </Button>
+        <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+          Cancel
+        </Button>
+      </div>
+      <p className="text-xs text-text-faint">Tell them the temporary password — they can change it after logging in.</p>
+    </form>
   );
 }

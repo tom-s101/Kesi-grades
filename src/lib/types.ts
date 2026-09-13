@@ -80,6 +80,25 @@ export interface Database {
           homework_weight?: number;
         }
       >;
+      class_sections: Table<
+        {
+          id: string;
+          school_id: string;
+          grade_level_id: string;
+          school_year_id: string;
+          name: string;
+          sort_order: number;
+          created_at: string;
+        },
+        {
+          id?: string;
+          school_id: string;
+          grade_level_id: string;
+          school_year_id: string;
+          name: string;
+          sort_order?: number;
+        }
+      >;
       teachers: Table<
         {
           id: string;
@@ -106,6 +125,7 @@ export interface Database {
           id: string;
           school_id: string;
           grade_level_id: string;
+          section_id: string;
           subject_id: string;
           school_year_id: string;
           teacher_id: string;
@@ -115,6 +135,7 @@ export interface Database {
           id?: string;
           school_id: string;
           grade_level_id: string;
+          section_id: string;
           subject_id: string;
           school_year_id: string;
           teacher_id: string;
@@ -140,6 +161,7 @@ export interface Database {
           religion: string | null;
           home_address: string | null;
           current_grade_level_id: string | null;
+          section_id: string | null;
           status: StudentStatus;
           notes: string | null;
           created_at: string;
@@ -164,6 +186,7 @@ export interface Database {
           religion?: string | null;
           home_address?: string | null;
           current_grade_level_id?: string | null;
+          section_id?: string | null;
           status?: StudentStatus;
           notes?: string | null;
         }
@@ -312,12 +335,14 @@ export interface Database {
       class_roster_size: ViewOnly<{
         school_id: string;
         grade_level_id: string;
+        section_id: string | null;
         student_count: number;
       }>;
       weekly_entry_counts: ViewOnly<{
         teacher_id: string;
         school_id: string;
         grade_level_id: string;
+        section_id: string;
         subject_id: string;
         quarter_id: string;
         week_number: number;
@@ -335,6 +360,7 @@ export type Views<T extends keyof Database["public"]["Views"]> = Database["publi
 export type School = Tables<"schools">;
 export type GradeLevel = Tables<"grade_levels">;
 export type Subject = Tables<"subjects">;
+export type ClassSection = Tables<"class_sections">;
 export type Teacher = Tables<"teachers">;
 export type Student = Tables<"students">;
 export type Quarter = Tables<"quarters">;

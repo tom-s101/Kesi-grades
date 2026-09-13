@@ -14,14 +14,18 @@ export default async function ReportCardPage({ params }: { params: Promise<{ id:
 
   const { data: studentRaw } = await supabase
     .from("students")
-    .select("*, grade_levels(name), schools(name)")
+    .select("*, grade_levels(name), schools(name), class_sections(name)")
     .eq("id", id)
     .single();
   if (!studentRaw) notFound();
   const student = studentRaw as unknown as import("@/lib/types").Student & {
     grade_levels: { name: string } | null;
     schools: { name: string } | null;
+    class_sections: { name: string } | null;
   };
+  const gradeAndSection = `${student.grade_levels?.name ?? "—"}${
+    student.class_sections?.name && student.class_sections.name !== "Main" ? ` (${student.class_sections.name})` : ""
+  }`;
 
   const schoolYear = await getCurrentSchoolYear();
   const quarters = schoolYear ? await getQuarters(schoolYear.id) : [];
@@ -71,7 +75,7 @@ export default async function ReportCardPage({ params }: { params: Promise<{ id:
             <Field label="Name" value={fullName(student)} className="col-span-2 sm:col-span-2" />
             <Field label="LRN" value={student.lrn ?? "—"} />
             <Field label="Sex" value={student.sex ?? "—"} />
-            <Field label="Grade Level" value={student.grade_levels?.name ?? "—"} />
+            <Field label="Grade & Section" value={gradeAndSection} />
             <Field label="Age" value={String(ageFromBirthdate(student.birthdate) ?? "—")} />
             <Field label="Status" value={student.status} className="capitalize" />
           </section>

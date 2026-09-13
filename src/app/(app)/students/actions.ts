@@ -20,6 +20,7 @@ export async function createStudent(_prev: StudentFormState, formData: FormData)
   const firstName = str(formData, "first_name");
   const lastName = str(formData, "last_name");
   const gradeLevelId = str(formData, "grade_level_id");
+  const sectionId = str(formData, "section_id");
 
   if (!schoolId || !firstName || !lastName) {
     return { error: "School, first name, and last name are required." };
@@ -44,6 +45,7 @@ export async function createStudent(_prev: StudentFormState, formData: FormData)
       religion: str(formData, "religion"),
       home_address: str(formData, "home_address"),
       current_grade_level_id: gradeLevelId,
+      section_id: sectionId,
     })
     .select("id")
     .single();
@@ -94,6 +96,7 @@ export async function updateStudent(_prev: StudentFormState, formData: FormData)
     notes: str(formData, "notes"),
   };
   if (formData.has("grade_level_id")) update.current_grade_level_id = str(formData, "grade_level_id");
+  if (formData.has("section_id")) update.section_id = str(formData, "section_id");
   if (formData.has("status")) update.status = (str(formData, "status") as StudentStatus | null) ?? "active";
 
   const { error } = await supabase.from("students").update(update).eq("id", id);

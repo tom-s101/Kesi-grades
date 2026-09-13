@@ -31,6 +31,8 @@ type Row = {
   whatsapp_number: string;
   grade_codes: string;
   subject_codes: string;
+  /** Optional — only needed when a grade is split into more than one class. Defaults to "Main". */
+  section_name: string;
 };
 
 async function main() {
@@ -128,26 +130,53 @@ async function main() {
 
     const gradeCodes = row.grade_codes ? row.grade_codes.split(";").map((s) => s.trim()).filter(Boolean) : [];
     const subjectCodes = row.subject_codes ? row.subject_codes.split(";").map((s) => s.trim()).filter(Boolean) : [];
+    const sectionName = row.section_name?.trim() || "Main";
 
     if (schoolId && gradeCodes.length && subjectCodes.length) {
+      // Resolve (or create) the section for each grade this teacher covers —
+      // "Main" unless the CSV says otherwise (e.g. two teachers splitting a
+      // grade into "A"/"B").
+      const sectionIdByGrade = new Map<string, string>();
+      for (const gc of gradeCodes) {
+        const gradeLevelId = gradeByCode.get(gc);
+        if (!gradeLevelId) continue;
+        const { data: section, error: sectionError } = await supabase
+          .from("class_sections")
+          .upsert(
+            { school_id: schoolId, grade_level_id: gradeLevelId, school_year_id: schoolYear.id, name: sectionName },
+            { onConflict: "school_id,grade_level_id,school_year_id,name" },
+          )
+          .select("id")
+          .single();
+        if (sectionError || !section) {
+          console.error(`Couldn't resolve section "${sectionName}" for ${gc} at ${row.school_slug}: ${sectionError?.message}`);
+          continue;
+        }
+        sectionIdByGrade.set(gc, section.id);
+      }
+
       const assignments = gradeCodes.flatMap((gc) =>
         subjectCodes.map((sc) => ({
           school_id: schoolId,
           grade_level_id: gradeByCode.get(gc),
+          section_id: sectionIdByGrade.get(gc),
           subject_id: subjectByCode.get(sc),
           school_year_id: schoolYear.id,
           teacher_id: userId,
         })),
       );
-      const missingCode = assignments.find((a) => !a.grade_level_id || !a.subject_id);
+      const missingCode = assignments.find((a) => !a.grade_level_id || !a.subject_id || !a.section_id);
       if (missingCode) {
-        console.warn(`Skipping some assignments for ${row.email}: unknown grade/subject code`);
+        console.warn(`Skipping some assignments for ${row.email}: unknown grade/subject code or unresolved section`);
       }
-      const validAssignments = assignments.filter((a) => a.grade_level_id && a.subject_id);
+      const validAssignments = assignments.filter(
+        (a): a is typeof a & { grade_level_id: string; subject_id: string; section_id: string } =>
+          Boolean(a.grade_level_id && a.subject_id && a.section_id),
+      );
       if (validAssignments.length) {
         const { error: assignError } = await supabase
           .from("class_subject_teachers")
-          .upsert(validAssignments, { onConflict: "school_id,grade_level_id,subject_id,school_year_id" });
+          .upsert(validAssignments, { onConflict: "school_id,grade_level_id,subject_id,school_year_id,section_id" });
         if (assignError) console.error(`Assignment upsert failed for ${row.email}: ${assignError.message}`);
       }
     }

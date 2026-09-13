@@ -124,7 +124,10 @@ export default async function StudentsPage({
                         <span className="font-medium text-text">{fullName(s)}</span>
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-text-soft">{s.grade_levels?.name ?? "—"}</td>
+                    <td className="px-4 py-3 text-text-soft">
+                      {s.grade_levels?.name ?? "—"}
+                      {s.class_sections?.name && s.class_sections.name !== "Main" ? ` (${s.class_sections.name})` : ""}
+                    </td>
                     {teacher.is_master_admin && (
                       <td className="px-4 py-3 text-text-soft">{s.schools?.name ?? "—"}</td>
                     )}

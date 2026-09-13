@@ -67,15 +67,15 @@ export default async function DashboardPage() {
       if (relevantAssignments.length) {
         const { data: counts } = await supabase
           .from("weekly_entry_counts")
-          .select("grade_level_id, subject_id, assessment_type")
+          .select("section_id, subject_id, assessment_type")
           .eq("teacher_id", teacher.id)
           .eq("quarter_id", currentQuarter.id)
           .eq("week_number", currentWeek);
-        const covered = new Set((counts ?? []).map((c) => `${c.grade_level_id}:${c.subject_id}:${c.assessment_type}`));
+        const covered = new Set((counts ?? []).map((c) => `${c.section_id}:${c.subject_id}:${c.assessment_type}`));
 
         for (const a of relevantAssignments) {
           for (const type of ["quiz", "homework_participation"] as const) {
-            if (!covered.has(`${a.grade_level_id}:${a.subject_id}:${type}`)) {
+            if (!covered.has(`${a.section_id}:${a.subject_id}:${type}`)) {
               missingWeeklyEntries.push({
                 grade: a.grade_levels?.name ?? "",
                 subject: a.subjects?.name ?? "",

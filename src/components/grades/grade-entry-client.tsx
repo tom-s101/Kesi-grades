@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { rawToPercentage } from "@/lib/grades";
 import { saveExamScores, saveWeeklyScores } from "@/app/(app)/grades/actions";
 
-type Assignment = { id: string; label: string; gradeLevelId: string; subjectId: string; schoolId: string };
+type Assignment = { id: string; label: string; gradeLevelId: string; sectionId: string; subjectId: string; schoolId: string };
 type QuarterOpt = { id: string; name: string; number: number };
 type StudentOpt = { id: string; name: string };
 type ExistingScore = { student_id: string; raw_score: number | null; max_score: number | null; percentage: number };

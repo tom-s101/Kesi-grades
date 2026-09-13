@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { CalendarCheck, TriangleAlert } from "lucide-react";
 import { requireTeacher } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentSchoolYear, getGradeLevels, getSchools } from "@/lib/queries";
+import { getCurrentSchoolYear, getGradeLevels, getSchools, getSections } from "@/lib/queries";
 import { fullName, ageFromBirthdate, initials } from "@/lib/format";
 import { remarkFor } from "@/lib/grades";
 import { Topbar } from "@/components/layout/topbar";
@@ -17,7 +17,7 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
 
   const { data: studentRaw } = await supabase
     .from("students")
-    .select("*, grade_levels(name), schools(name)")
+    .select("*, grade_levels(name), schools(name), class_sections(name)")
     .eq("id", id)
     .single();
 
@@ -25,6 +25,7 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
   const student = studentRaw as unknown as import("@/lib/types").Student & {
     grade_levels: { name: string } | null;
     schools: { name: string } | null;
+    class_sections: { name: string } | null;
   };
 
   const schoolYear = await getCurrentSchoolYear();
@@ -68,7 +69,11 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
               <div>
                 <p className="font-display text-xl font-medium text-text">{fullName(student)}</p>
                 <p className="text-sm text-text-soft">
-                  {student.grade_levels?.name ?? "Unassigned"} &middot; {student.schools?.name}
+                  {student.grade_levels?.name ?? "Unassigned"}
+                  {student.class_sections?.name && student.class_sections.name !== "Main"
+                    ? ` (${student.class_sections.name})`
+                    : ""}{" "}
+                  &middot; {student.schools?.name}
                   {age !== null ? ` · ${age} years old` : ""}
                 </p>
                 <div className="mt-2 flex gap-2">
@@ -189,12 +194,18 @@ async function EditSection({
   canEditSensitive: boolean;
   isMasterAdmin: boolean;
 }) {
-  const [gradeLevels, schools] = await Promise.all([getGradeLevels(), isMasterAdmin ? getSchools() : Promise.resolve([])]);
+  const schoolYear = await getCurrentSchoolYear();
+  const [gradeLevels, schools, sections] = await Promise.all([
+    getGradeLevels(),
+    isMasterAdmin ? getSchools() : Promise.resolve([]),
+    schoolYear ? getSections(student.school_id, schoolYear.id) : Promise.resolve([]),
+  ]);
   return (
     <StudentForm
       mode="edit"
       student={student}
       gradeLevels={gradeLevels}
+      sections={sections}
       schools={schools}
       defaultSchoolId={student.school_id}
       canEditSensitive={canEditSensitive}

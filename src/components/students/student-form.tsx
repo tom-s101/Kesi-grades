@@ -1,13 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Lock } from "lucide-react";
 import { createStudent, updateStudent, type StudentFormState } from "@/app/(app)/students/actions";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
-import type { GradeLevel, School, Student } from "@/lib/types";
+import type { ClassSection, GradeLevel, School, Student } from "@/lib/types";
 
 const initialState: StudentFormState = {};
 
@@ -15,6 +15,7 @@ export function StudentForm({
   mode,
   student,
   gradeLevels,
+  sections,
   schools,
   defaultSchoolId,
   canEditSensitive = true,
@@ -22,19 +23,24 @@ export function StudentForm({
   mode: "create" | "edit";
   student?: Student;
   gradeLevels: GradeLevel[];
+  /** Every section for this school/year, across all grades — filtered client-side by the chosen grade. */
+  sections: ClassSection[];
   schools: School[];
   defaultSchoolId?: string;
-  /** Grade level / school / enrollment status — head teacher & master admin only. */
+  /** Grade level / section / school / enrollment status — head teacher & master admin only. */
   canEditSensitive?: boolean;
 }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(mode === "create" ? createStudent : updateStudent, initialState);
+  const [gradeLevelId, setGradeLevelId] = useState(student?.current_grade_level_id ?? "");
 
   useEffect(() => {
     if (state.ok) router.push(mode === "create" ? "/students" : `/students/${student?.id}`);
   }, [state.ok, router, mode, student?.id]);
 
   const currentGradeName = gradeLevels.find((g) => g.id === student?.current_grade_level_id)?.name ?? "Unassigned";
+  const currentSectionName = sections.find((s) => s.id === student?.section_id)?.name ?? "—";
+  const sectionsForGrade = sections.filter((s) => s.grade_level_id === gradeLevelId);
 
   return (
     <form action={action} className="space-y-5">
@@ -80,7 +86,12 @@ export function StudentForm({
             Grade level {!canEditSensitive && <Lock size={11} className="text-text-faint" />}
           </Label>
           {canEditSensitive ? (
-            <Select id="grade_level_id" name="grade_level_id" defaultValue={student?.current_grade_level_id ?? ""}>
+            <Select
+              id="grade_level_id"
+              name="grade_level_id"
+              value={gradeLevelId}
+              onChange={(e) => setGradeLevelId(e.target.value)}
+            >
               <option value="">Unassigned</option>
               {gradeLevels.map((g) => (
                 <option key={g.id} value={g.id}>
@@ -95,6 +106,31 @@ export function StudentForm({
             </>
           )}
         </div>
+        <div>
+          <Label htmlFor="section_id" className="flex items-center gap-1">
+            Class / section {!canEditSensitive && <Lock size={11} className="text-text-faint" />}
+          </Label>
+          {canEditSensitive ? (
+            <Select id="section_id" name="section_id" defaultValue={student?.section_id ?? ""} disabled={!gradeLevelId}>
+              <option value="">
+                {gradeLevelId ? "Choose a class" : "Pick a grade first"}
+              </option>
+              {sectionsForGrade.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </Select>
+          ) : (
+            <>
+              <input type="hidden" name="section_id" value={student?.section_id ?? ""} />
+              <p className="flex h-10 items-center text-sm text-text-soft">{currentSectionName}</p>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div>
           <Label htmlFor="sex">Sex</Label>
           <Select id="sex" name="sex" defaultValue={student?.sex ?? ""}>

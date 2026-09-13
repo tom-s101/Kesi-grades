@@ -8,7 +8,7 @@ import { AttendanceClient } from "@/components/attendance/attendance-client";
 function dedupeClasses(assignments: TeacherAssignment[]) {
   const seen = new Map<string, TeacherAssignment>();
   for (const a of assignments) {
-    const key = `${a.school_id}:${a.grade_level_id}`;
+    const key = a.section_id;
     if (!seen.has(key)) seen.set(key, a);
   }
   return [...seen.values()];
@@ -27,7 +27,7 @@ export default async function AttendancePage({
   if (teacher.is_master_admin || teacher.is_head_teacher) {
     const query = supabase
       .from("class_subject_teachers")
-      .select("*, grade_levels(code, name, sort_order), subjects(code, name, sort_order)")
+      .select("*, grade_levels(code, name, sort_order), subjects(code, name, sort_order), class_sections(name)")
       .order("school_id");
     const scoped = teacher.is_master_admin ? query : query.eq("school_id", teacher.school_id ?? "");
     const { data } = await scoped;
@@ -62,8 +62,7 @@ export default async function AttendancePage({
   const { data: students } = await supabase
     .from("students")
     .select("id, first_name, middle_name, last_name")
-    .eq("school_id", activeClass.school_id)
-    .eq("current_grade_level_id", activeClass.grade_level_id)
+    .eq("section_id", activeClass.section_id)
     .eq("status", "active")
     .order("last_name");
 
@@ -78,7 +77,13 @@ export default async function AttendancePage({
       <Topbar teacher={teacher} title="Attendance" />
       <main className="flex-1 space-y-5 p-5 lg:p-8">
         <AttendanceClient
-          classes={classes.map((c) => ({ id: c.id, label: c.grade_levels?.name ?? "", schoolId: c.school_id }))}
+          classes={classes.map((c) => ({
+            id: c.id,
+            label: `${c.grade_levels?.name ?? ""}${
+              c.class_sections?.name && c.class_sections.name !== "Main" ? ` (${c.class_sections.name})` : ""
+            }`,
+            schoolId: c.school_id,
+          }))}
           activeClassId={activeClass.id}
           date={date}
           students={(students ?? []).map((s) => ({

@@ -98,7 +98,7 @@ export default async function OrgAdminPage({
   if (currentQuarter && currentWeek) {
     let assignQuery = supabase
       .from("class_subject_teachers")
-      .select("*, schools(name), grade_levels(name), subjects(name), teachers(full_name)")
+      .select("*, schools(name), grade_levels(name), class_sections(name), subjects(name), teachers(full_name)")
       .eq("school_year_id", schoolYear!.id);
     if (filters.school) assignQuery = assignQuery.eq("school_id", filters.school);
     if (filters.grade) assignQuery = assignQuery.eq("grade_level_id", filters.grade);
@@ -107,26 +107,28 @@ export default async function OrgAdminPage({
 
     const { data: counts } = await supabase
       .from("weekly_entry_counts")
-      .select("school_id, grade_level_id, subject_id, assessment_type")
+      .select("section_id, subject_id, assessment_type")
       .eq("quarter_id", currentQuarter.id)
       .eq("week_number", currentWeek);
-    const covered = new Set((counts ?? []).map((c) => `${c.school_id}:${c.grade_level_id}:${c.subject_id}:${c.assessment_type}`));
+    const covered = new Set((counts ?? []).map((c) => `${c.section_id}:${c.subject_id}:${c.assessment_type}`));
 
     for (const a of (allAssignments ?? []) as unknown as {
-      school_id: string;
-      grade_level_id: string;
+      section_id: string;
       subject_id: string;
       schools: { name: string } | null;
       grade_levels: { name: string } | null;
+      class_sections: { name: string } | null;
       subjects: { name: string } | null;
       teachers: { full_name: string } | null;
     }[]) {
       for (const type of ["quiz", "homework_participation"] as const) {
-        const key = `${a.school_id}:${a.grade_level_id}:${a.subject_id}:${type}`;
+        const key = `${a.section_id}:${a.subject_id}:${type}`;
         if (!covered.has(key)) {
           missing.push({
             school: a.schools?.name ?? "",
-            grade: a.grade_levels?.name ?? "",
+            grade: `${a.grade_levels?.name ?? ""}${
+              a.class_sections?.name && a.class_sections.name !== "Main" ? ` (${a.class_sections.name})` : ""
+            }`,
             subject: a.subjects?.name ?? "",
             teacher: a.teachers?.full_name ?? "",
             type: type === "quiz" ? "Quizzes" : "Homework",
