@@ -45,7 +45,7 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
       .order("quarter_number"),
   ]);
 
-  const canEdit = teacher.is_head_teacher || teacher.is_master_admin;
+  const canEditSensitive = teacher.is_head_teacher || teacher.is_master_admin;
   const age = ageFromBirthdate(student.birthdate);
 
   const bySubject = new Map<string, typeof grades>();
@@ -153,16 +153,19 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
           </CardContent>
         </Card>
 
-        {canEdit && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Edit student</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <EditSection student={student} />
-            </CardContent>
-          </Card>
-        )}
+        <Card>
+          <CardHeader>
+            <CardTitle>Edit student</CardTitle>
+            <CardDescription>
+              {canEditSensitive
+                ? "Fix a typo, update contact info, or reassign grade/status."
+                : "Fix a typo or update contact info. Grade level and status changes need a head teacher or admin."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <EditSection student={student} canEditSensitive={canEditSensitive} isMasterAdmin={teacher.is_master_admin} />
+          </CardContent>
+        </Card>
       </main>
     </>
   );
@@ -177,7 +180,24 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-async function EditSection({ student }: { student: import("@/lib/types").Student }) {
-  const [gradeLevels, schools] = await Promise.all([getGradeLevels(), getSchools()]);
-  return <StudentForm mode="edit" student={student} gradeLevels={gradeLevels} schools={schools} />;
+async function EditSection({
+  student,
+  canEditSensitive,
+  isMasterAdmin,
+}: {
+  student: import("@/lib/types").Student;
+  canEditSensitive: boolean;
+  isMasterAdmin: boolean;
+}) {
+  const [gradeLevels, schools] = await Promise.all([getGradeLevels(), isMasterAdmin ? getSchools() : Promise.resolve([])]);
+  return (
+    <StudentForm
+      mode="edit"
+      student={student}
+      gradeLevels={gradeLevels}
+      schools={schools}
+      defaultSchoolId={student.school_id}
+      canEditSensitive={canEditSensitive}
+    />
+  );
 }

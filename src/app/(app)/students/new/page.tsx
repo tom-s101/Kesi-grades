@@ -8,7 +8,10 @@ export default async function NewStudentPage() {
   const teacher = await requireTeacher();
   if (!teacher.is_head_teacher && !teacher.is_master_admin) redirect("/students");
 
-  const [gradeLevels, schools] = await Promise.all([getGradeLevels(), getSchools()]);
+  const [gradeLevels, schools] = await Promise.all([
+    getGradeLevels(),
+    teacher.is_master_admin ? getSchools() : Promise.resolve([]),
+  ]);
 
   return (
     <>

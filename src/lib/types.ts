@@ -133,6 +133,12 @@ export interface Database {
           birthdate: string | null;
           guardian_name: string | null;
           guardian_contact: string | null;
+          father_name: string | null;
+          mother_name: string | null;
+          mother_tongue: string | null;
+          ip_group: string | null;
+          religion: string | null;
+          home_address: string | null;
           current_grade_level_id: string | null;
           status: StudentStatus;
           notes: string | null;
@@ -151,6 +157,12 @@ export interface Database {
           birthdate?: string | null;
           guardian_name?: string | null;
           guardian_contact?: string | null;
+          father_name?: string | null;
+          mother_name?: string | null;
+          mother_tongue?: string | null;
+          ip_group?: string | null;
+          religion?: string | null;
+          home_address?: string | null;
           current_grade_level_id?: string | null;
           status?: StudentStatus;
           notes?: string | null;

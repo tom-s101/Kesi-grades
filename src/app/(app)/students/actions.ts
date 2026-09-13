@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { Sex, StudentStatus } from "@/lib/types";
+import type { Database, Sex, StudentStatus } from "@/lib/types";
+
+type StudentUpdate = Database["public"]["Tables"]["students"]["Update"];
 
 export type StudentFormState = { error?: string; ok?: boolean };
 
@@ -35,6 +37,12 @@ export async function createStudent(_prev: StudentFormState, formData: FormData)
       birthdate: str(formData, "birthdate"),
       guardian_name: str(formData, "guardian_name"),
       guardian_contact: str(formData, "guardian_contact"),
+      father_name: str(formData, "father_name"),
+      mother_name: str(formData, "mother_name"),
+      mother_tongue: str(formData, "mother_tongue"),
+      ip_group: str(formData, "ip_group"),
+      religion: str(formData, "religion"),
+      home_address: str(formData, "home_address"),
       current_grade_level_id: gradeLevelId,
     })
     .select("id")
@@ -63,22 +71,32 @@ export async function updateStudent(_prev: StudentFormState, formData: FormData)
   const id = str(formData, "id");
   if (!id) return { error: "Missing student id." };
 
-  const { error } = await supabase
-    .from("students")
-    .update({
-      first_name: str(formData, "first_name") ?? undefined,
-      last_name: str(formData, "last_name") ?? undefined,
-      middle_name: str(formData, "middle_name"),
-      lrn: str(formData, "lrn"),
-      sex: (str(formData, "sex") as Sex | null) ?? null,
-      birthdate: str(formData, "birthdate"),
-      guardian_name: str(formData, "guardian_name"),
-      guardian_contact: str(formData, "guardian_contact"),
-      current_grade_level_id: str(formData, "grade_level_id"),
-      status: (str(formData, "status") as StudentStatus | null) ?? "active",
-      notes: str(formData, "notes"),
-    })
-    .eq("id", id);
+  // grade_level_id / status are only touched when the field was actually
+  // submitted — the form sends a hidden input with the *current* value
+  // for teachers who aren't allowed to change them, but omitting this
+  // check entirely would mean a missing field silently resets status to
+  // "active" for anyone who can't see that control at all.
+  const update: StudentUpdate = {
+    first_name: str(formData, "first_name") ?? undefined,
+    last_name: str(formData, "last_name") ?? undefined,
+    middle_name: str(formData, "middle_name"),
+    lrn: str(formData, "lrn"),
+    sex: (str(formData, "sex") as Sex | null) ?? null,
+    birthdate: str(formData, "birthdate"),
+    guardian_name: str(formData, "guardian_name"),
+    guardian_contact: str(formData, "guardian_contact"),
+    father_name: str(formData, "father_name"),
+    mother_name: str(formData, "mother_name"),
+    mother_tongue: str(formData, "mother_tongue"),
+    ip_group: str(formData, "ip_group"),
+    religion: str(formData, "religion"),
+    home_address: str(formData, "home_address"),
+    notes: str(formData, "notes"),
+  };
+  if (formData.has("grade_level_id")) update.current_grade_level_id = str(formData, "grade_level_id");
+  if (formData.has("status")) update.status = (str(formData, "status") as StudentStatus | null) ?? "active";
+
+  const { error } = await supabase.from("students").update(update).eq("id", id);
 
   if (error) return { error: error.message };
 
