@@ -8,9 +8,13 @@
 -- fix both: every grade always has at least one section ("Main"), and
 -- a regular teacher's access is now scoped to their section(s), not
 -- the whole grade.
+--
+-- Written to be safely re-runnable: every step is guarded, so running
+-- this twice (or after a run that stopped partway with an error) just
+-- brings the database to the right state.
 -- =====================================================================
 
-create table class_sections (
+create table if not exists class_sections (
   id               uuid primary key default gen_random_uuid(),
   school_id        uuid not null references schools(id) on delete cascade,
   grade_level_id   uuid not null references grade_levels(id) on delete cascade,
@@ -34,7 +38,7 @@ on conflict (school_id, grade_level_id, school_year_id, name) do nothing;
 -- students.section_id
 -- ---------------------------------------------------------------------
 
-alter table students add column section_id uuid references class_sections(id) on delete set null;
+alter table students add column if not exists section_id uuid references class_sections(id) on delete set null;
 
 update students s
 set section_id = cs.id
@@ -45,14 +49,14 @@ where s.section_id is null
   and cs.name = 'Main'
   and cs.school_year_id = (select id from school_years where is_current);
 
-create index students_section_idx on students(section_id);
+create index if not exists students_section_idx on students(section_id);
 
 -- ---------------------------------------------------------------------
 -- class_subject_teachers.section_id — replaces the old one-teacher-
 -- per-grade unique constraint with one-teacher-per-section.
 -- ---------------------------------------------------------------------
 
-alter table class_subject_teachers add column section_id uuid references class_sections(id) on delete cascade;
+alter table class_subject_teachers add column if not exists section_id uuid references class_sections(id) on delete cascade;
 
 update class_subject_teachers cst
 set section_id = cs.id
@@ -78,7 +82,7 @@ alter table class_subject_teachers
   alter column section_id set not null,
   add constraint cst_unique_section unique (school_id, grade_level_id, subject_id, school_year_id, section_id);
 
-create index cst_section_idx on class_subject_teachers(section_id);
+create index if not exists cst_section_idx on class_subject_teachers(section_id);
 
 -- ---------------------------------------------------------------------
 -- RLS on class_sections itself
@@ -86,8 +90,10 @@ create index cst_section_idx on class_subject_teachers(section_id);
 
 alter table class_sections enable row level security;
 
+drop policy if exists sections_read on class_sections;
 create policy sections_read on class_sections for select using (auth.uid() is not null);
 
+drop policy if exists sections_write on class_sections;
 create policy sections_write on class_sections for all
   using (auth_is_master_admin() or auth_is_head_teacher_of(school_id))
   with check (auth_is_master_admin() or auth_is_head_teacher_of(school_id));
@@ -232,7 +238,11 @@ create policy exam_scores_write on quarter_exam_scores for all
 -- section's identical assignment look "done" too.
 -- ---------------------------------------------------------------------
 
-create or replace view weekly_entry_counts with (security_invoker = true) as
+-- Dropped rather than CREATE OR REPLACE'd: replace can only append
+-- columns to an existing view, and section_id lands in the middle of
+-- the column list, which Postgres rejects outright.
+drop view if exists weekly_entry_counts;
+create view weekly_entry_counts with (security_invoker = true) as
 select
   cst.teacher_id,
   cst.school_id,
@@ -248,7 +258,8 @@ join students st on st.section_id = cst.section_id
 join weekly_scores ws on ws.student_id = st.id and ws.subject_id = cst.subject_id
 group by cst.teacher_id, cst.school_id, cst.grade_level_id, cst.section_id, cst.subject_id, ws.quarter_id, ws.week_number, ws.assessment_type;
 
-create or replace view class_roster_size with (security_invoker = true) as
+drop view if exists class_roster_size;
+create view class_roster_size with (security_invoker = true) as
 select
   school_id,
   current_grade_level_id as grade_level_id,

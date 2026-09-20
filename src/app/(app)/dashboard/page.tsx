@@ -22,7 +22,7 @@ export default async function DashboardPage() {
   const schoolYear = await getCurrentSchoolYear();
   const quarters = schoolYear ? await getQuarters(schoolYear.id) : [];
   const currentQuarter = quarters.length ? findCurrentQuarter(quarters) : null;
-  const currentWeek = currentQuarter ? weekNumberInQuarter(currentQuarter, new Date()) : null;
+  const currentWeek = currentQuarter ? weekNumberInQuarter(currentQuarter) : null;
 
   const [{ count: studentCount }, assignments] = await Promise.all([
     supabase.from("students").select("*", { count: "exact", head: true }).eq("status", "active"),

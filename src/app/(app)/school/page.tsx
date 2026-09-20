@@ -63,6 +63,9 @@ export default async function SchoolAdminPage({
       <Topbar teacher={teacher} title={`School Admin — ${activeSchool.name}`} />
       <main className="flex-1 space-y-6 p-5 lg:p-8">
         <SchoolAdminClient
+          // Remount when switching schools so the sections, assignments
+          // and grade toggles on screen belong to the school selected.
+          key={activeSchool.id}
           schools={schools}
           activeSchoolId={activeSchool.id}
           isMasterAdmin={teacher.is_master_admin}

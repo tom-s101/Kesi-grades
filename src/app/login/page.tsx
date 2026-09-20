@@ -1,12 +1,18 @@
 import Image from "next/image";
+import { redirect } from "next/navigation";
 import { LoginFlow } from "@/components/auth/login-flow";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { openAccessEnabled } from "@/lib/testing-mode";
 
 export default async function LoginPage({
   searchParams,
 }: {
   searchParams: Promise<{ next?: string }>;
 }) {
+  // Nothing to log into while the site is open for testing — asking
+  // for a password nobody has yet would just be a dead end.
+  if (openAccessEnabled()) redirect("/dashboard");
+
   const { next } = await searchParams;
 
   return (

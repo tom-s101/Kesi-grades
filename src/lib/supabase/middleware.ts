@@ -1,13 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { openAccessEnabled } from "@/lib/testing-mode";
 
 const PUBLIC_EXACT_PATHS = ["/", "/login"];
 const PUBLIC_PREFIXES = ["/api/whatsapp", "/api/auth/"];
 
 export async function updateSession(request: NextRequest) {
-  // TESTING ONLY: DISABLE_AUTH skips the login gate entirely — see
-  // src/lib/supabase/server.ts and docs/SUPABASE_SETUP.md.
-  if (process.env.DISABLE_AUTH === "true") {
+  // Open testing mode: no login gate at all. This has to agree with
+  // src/lib/testing-mode.ts — if the gate here redirected to /login
+  // while the login page redirected back to the dashboard, every
+  // request would bounce between the two forever.
+  if (openAccessEnabled()) {
     return NextResponse.next({ request });
   }
 

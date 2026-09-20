@@ -38,7 +38,16 @@ it, then move to the next:
 9. `0009_class_sections.sql` — adds "classes" (sections): lets a grade be
    split between two teachers (e.g. two Kindergarten A classes), each only
    seeing their own half. Every grade gets a default "Main" section
-   automatically.
+   automatically. **If you ran an earlier copy of this file that stopped on
+   `cannot change name of view column`, run this version again** — it is
+   written to be safely re-runnable and will finish the half-applied parts.
+10. `0010_section_autoassign.sql` — puts every student into a class
+    automatically (existing students included), and stops the permission
+    guards from blocking writes made from the SQL Editor or by the
+    service-role key, which have no signed-in user to check.
+
+Every migration is safe to run twice, so if you lose track of where you
+got to, just run them all again from the top.
 
 If you prefer the CLI instead of pasting into the dashboard:
 
@@ -118,10 +127,25 @@ the repo). Set these environment variables on the host:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` (required — open testing mode runs on it)
+- `REQUIRE_LOGIN` — see below
 - The `WHATSAPP_*` variables once you've done the WhatsApp setup (see
   `docs/WHATSAPP_INTEGRATION.md`) — the app runs fine without them, it just
   logs instead of sending.
+
+## 6b. Open testing mode vs. locked down
+
+**The app ships open.** With no `REQUIRE_LOGIN` variable set, there is no
+sign-in at all: anyone with the URL lands straight on the dashboard with
+full master-admin access, and a **"Viewing as"** picker in the top bar lets
+you walk the site as any teacher on the roster to check what they'd see. An
+orange banner sits on every page so it can't be forgotten. This is for
+clicking through the UI before real student records go in.
+
+To lock it down, set **`REQUIRE_LOGIN=true`** on the host and redeploy. The
+login screen, the session check, and every row-level-security policy come
+back with no other change. Do that before real student data goes in, and
+before the URL goes anywhere outside your team.
 
 ## 7. Sanity-check RLS
 

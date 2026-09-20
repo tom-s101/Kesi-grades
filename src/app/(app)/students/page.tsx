@@ -24,7 +24,7 @@ export default async function StudentsPage({
     getCurrentSchoolYear(),
   ]);
 
-  const students = await getVisibleStudents({ schoolId: school, gradeLevelId: grade });
+  const students = await getVisibleStudents({ schoolId: school, gradeLevelId: grade }, teacher);
   const filtered = q
     ? students.filter((s) => fullName(s).toLowerCase().includes(q.toLowerCase()))
     : students;

@@ -33,6 +33,8 @@ export function StudentForm({
   const router = useRouter();
   const [state, action, pending] = useActionState(mode === "create" ? createStudent : updateStudent, initialState);
   const [gradeLevelId, setGradeLevelId] = useState(student?.current_grade_level_id ?? "");
+  const [schoolId, setSchoolId] = useState(student?.school_id ?? defaultSchoolId ?? "");
+  const [sectionId, setSectionId] = useState(student?.section_id ?? "");
 
   useEffect(() => {
     if (state.ok) router.push(mode === "create" ? "/students" : `/students/${student?.id}`);
@@ -40,7 +42,14 @@ export function StudentForm({
 
   const currentGradeName = gradeLevels.find((g) => g.id === student?.current_grade_level_id)?.name ?? "Unassigned";
   const currentSectionName = sections.find((s) => s.id === student?.section_id)?.name ?? "—";
-  const sectionsForGrade = sections.filter((s) => s.grade_level_id === gradeLevelId);
+  const sectionsForGrade = sections.filter(
+    (s) => s.grade_level_id === gradeLevelId && (!schoolId || s.school_id === schoolId),
+  );
+  // Changing the grade or the school can strip the chosen class out of
+  // the list. Fall back to "unassigned" rather than leaving a stale id
+  // in the form — the database then puts the student in that grade's
+  // default class.
+  const selectedSection = sectionsForGrade.some((s) => s.id === sectionId) ? sectionId : "";
 
   return (
     <form action={action} className="space-y-5">
@@ -49,7 +58,13 @@ export function StudentForm({
       {canEditSensitive && schools.length > 0 && (
         <div>
           <Label htmlFor="school_id">School</Label>
-          <Select id="school_id" name="school_id" defaultValue={student?.school_id ?? defaultSchoolId ?? ""} required>
+          <Select
+            id="school_id"
+            name="school_id"
+            value={schoolId}
+            onChange={(e) => setSchoolId(e.target.value)}
+            required
+          >
             <option value="" disabled>
               Choose a school
             </option>
@@ -111,7 +126,13 @@ export function StudentForm({
             Class / section {!canEditSensitive && <Lock size={11} className="text-text-faint" />}
           </Label>
           {canEditSensitive ? (
-            <Select id="section_id" name="section_id" defaultValue={student?.section_id ?? ""} disabled={!gradeLevelId}>
+            <Select
+              id="section_id"
+              name="section_id"
+              value={selectedSection}
+              onChange={(e) => setSectionId(e.target.value)}
+              disabled={!gradeLevelId}
+            >
               <option value="">
                 {gradeLevelId ? "Choose a class" : "Pick a grade first"}
               </option>

@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { HELP_TEXT, parseCommand, sendWhatsAppMessage } from "@/lib/whatsapp";
 import { findCurrentQuarter } from "@/lib/quarters";
+import { schoolToday } from "@/lib/school-time";
 
 /**
  * Meta WhatsApp Cloud API webhook. See docs/WHATSAPP_INTEGRATION.md for
@@ -136,7 +137,7 @@ async function handleMessage(fromPhone: string, text: string) {
   const student = matches[0];
 
   if (command.kind === "attendance") {
-    const date = command.date ?? new Date().toISOString().slice(0, 10);
+    const date = command.date ?? schoolToday();
     const { error } = await supabase.from("attendance_records").upsert(
       {
         student_id: student.id,

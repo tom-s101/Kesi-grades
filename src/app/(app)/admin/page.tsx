@@ -38,7 +38,7 @@ export default async function OrgAdminPage({
 
   const quarters = schoolYear ? await (await import("@/lib/queries")).getQuarters(schoolYear.id) : [];
   const currentQuarter = findCurrentQuarter(quarters);
-  const currentWeek = currentQuarter ? weekNumberInQuarter(currentQuarter, new Date()) : null;
+  const currentWeek = currentQuarter ? weekNumberInQuarter(currentQuarter) : null;
 
   let gradedRows: { student_id: string; subject_id: string; quarterly_grade: number | null }[] = [];
   if (currentQuarter && studentIds.length) {

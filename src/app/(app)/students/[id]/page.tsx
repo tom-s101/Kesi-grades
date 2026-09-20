@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { CalendarCheck, TriangleAlert } from "lucide-react";
 import { requireTeacher } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentSchoolYear, getGradeLevels, getSchools, getSections } from "@/lib/queries";
+import { getAllSections, getCurrentSchoolYear, getGradeLevels, getSchools, getSections } from "@/lib/queries";
 import { fullName, ageFromBirthdate, initials } from "@/lib/format";
 import { remarkFor } from "@/lib/grades";
 import { Topbar } from "@/components/layout/topbar";
@@ -198,7 +198,14 @@ async function EditSection({
   const [gradeLevels, schools, sections] = await Promise.all([
     getGradeLevels(),
     isMasterAdmin ? getSchools() : Promise.resolve([]),
-    schoolYear ? getSections(student.school_id, schoolYear.id) : Promise.resolve([]),
+    // A master admin can move a student to another school, so they need
+    // every school's classes on hand — otherwise the class dropdown
+    // empties out the moment they change the school.
+    schoolYear
+      ? isMasterAdmin
+        ? getAllSections(schoolYear.id)
+        : getSections(student.school_id, schoolYear.id)
+      : Promise.resolve([]),
   ]);
   return (
     <StudentForm

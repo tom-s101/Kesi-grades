@@ -13,9 +13,12 @@ import { useRouter } from "next/navigation";
 export function Sidebar({
   isHeadTeacher,
   isMasterAdmin,
+  openAccess,
 }: {
   isHeadTeacher: boolean;
   isMasterAdmin: boolean;
+  /** No login to sign out of while the site is open for testing. */
+  openAccess: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -84,14 +87,16 @@ export function Sidebar({
           </div>
         </Link>
         {nav}
-        <div className="mt-auto px-3 pt-4">
-          <button
-            onClick={signOut}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-text-soft transition-colors hover:bg-status-bad-bg hover:text-status-bad"
-          >
-            <LogOut size={17} /> Sign out
-          </button>
-        </div>
+        {!openAccess && (
+          <div className="mt-auto px-3 pt-4">
+            <button
+              onClick={signOut}
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-text-soft transition-colors hover:bg-status-bad-bg hover:text-status-bad"
+            >
+              <LogOut size={17} /> Sign out
+            </button>
+          </div>
+        )}
       </aside>
     </>
   );

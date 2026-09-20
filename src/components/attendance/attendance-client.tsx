@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { saveAttendance } from "@/app/(app)/attendance/actions";
 import type { AttendanceStatus } from "@/lib/types";
 
-type ClassOpt = { id: string; label: string; schoolId: string };
+type ClassOpt = { id: string; label: string };
 type StudentOpt = { id: string; name: string };
 type Existing = { student_id: string; session: "am" | "pm"; status: AttendanceStatus };
 
@@ -38,7 +38,9 @@ export function AttendanceClient({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const isFriday = new Date(date + "T00:00:00").getDay() === 5;
+  const isWeekend = [0, 6].includes(new Date(date + "T00:00:00").getDay());
 
   const [marks, setMarks] = useState<Record<string, { am: AttendanceStatus | null; pm: AttendanceStatus | null }>>(
     () => {
@@ -70,12 +72,15 @@ export function AttendanceClient({
   }
 
   function save() {
+    setError(null);
     startTransition(async () => {
       const entries = students.map((s) => ({ studentId: s.id, am: marks[s.id]?.am ?? null, pm: marks[s.id]?.pm ?? null }));
       const result = await saveAttendance({ schoolYearId, date, entries });
       if (result.ok) {
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
+      } else {
+        setError(result.error ?? "Couldn't save attendance. Please try again.");
       }
     });
   }
@@ -109,6 +114,11 @@ export function AttendanceClient({
           {isFriday && (
             <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-medium text-brand-strong">
               Friday — morning session only
+            </span>
+          )}
+          {isWeekend && (
+            <span className="rounded-full bg-status-warn-bg px-3 py-1 text-xs font-medium text-status-warn">
+              That&rsquo;s a weekend — pick a school day
             </span>
           )}
         </div>
@@ -148,14 +158,19 @@ export function AttendanceClient({
         </table>
       </Card>
 
-      <div className="flex items-center gap-3">
-        <Button onClick={save} disabled={pending || students.length === 0}>
-          {pending ? "Saving…" : "Save attendance"}
-        </Button>
-        {saved && (
-          <span className="inline-flex items-center gap-1 text-sm text-status-good">
-            <Check size={15} /> Saved
-          </span>
+      <div className="space-y-2">
+        <div className="flex items-center gap-3">
+          <Button onClick={save} disabled={pending || students.length === 0 || isWeekend}>
+            {pending ? "Saving…" : "Save attendance"}
+          </Button>
+          {saved && (
+            <span className="inline-flex items-center gap-1 text-sm text-status-good">
+              <Check size={15} /> Saved
+            </span>
+          )}
+        </div>
+        {error && (
+          <p className="rounded-lg bg-status-bad-bg px-3 py-2 text-sm text-status-bad">{error}</p>
         )}
       </div>
     </div>

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, Sprout } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { openAccessEnabled } from "@/lib/testing-mode";
 
 const SCHOOLS = [
   { name: "Agbalite", note: "Campus 1" },
@@ -30,6 +31,12 @@ const STEPS = [
 ];
 
 export default function MarketingHome() {
+  // While the site is open for testing there's no login to send people
+  // to — the dashboard is the front door.
+  const openAccess = openAccessEnabled();
+  const entryHref = openAccess ? "/dashboard" : "/login";
+  const entryLabel = openAccess ? "Open the dashboard" : "Staff Login";
+
   return (
     <div className="min-h-screen bg-surface">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
@@ -48,10 +55,10 @@ export default function MarketingHome() {
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <Link
-            href="/login"
+            href={entryHref}
             className="inline-flex h-9 items-center rounded-full bg-brand px-4 text-sm font-medium text-white transition-colors hover:bg-brand-strong"
           >
-            Staff Login
+            {entryLabel}
           </Link>
         </div>
       </header>
@@ -74,7 +81,7 @@ export default function MarketingHome() {
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <Link
-                href="/login"
+                href={entryHref}
                 className="inline-flex h-12 items-center gap-2 rounded-full bg-brand px-6 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-strong"
               >
                 Go to my dashboard <ArrowUpRight size={16} />
@@ -138,8 +145,8 @@ export default function MarketingHome() {
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-8 text-sm text-text-faint sm:flex-row">
           <span>&copy; {new Date().getFullYear()} Katutubo Excel Schools</span>
-          <Link href="/login" className="text-brand hover:underline">
-            Staff login &rarr;
+          <Link href={entryHref} className="text-brand hover:underline">
+            {entryLabel} &rarr;
           </Link>
         </div>
       </footer>

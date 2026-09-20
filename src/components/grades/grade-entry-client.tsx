@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ChevronLeft, ChevronRight, Save } from "lucide-react";
 import { Select } from "@/components/ui/input";
@@ -10,7 +10,8 @@ import { cn } from "@/lib/utils";
 import { rawToPercentage } from "@/lib/grades";
 import { saveExamScores, saveWeeklyScores } from "@/app/(app)/grades/actions";
 
-type Assignment = { id: string; label: string; gradeLevelId: string; sectionId: string; subjectId: string; schoolId: string };
+type SectionOpt = { id: string; label: string };
+type SubjectOpt = { id: string; name: string };
 type QuarterOpt = { id: string; name: string; number: number };
 type StudentOpt = { id: string; name: string };
 type ExistingScore = { student_id: string; raw_score: number | null; max_score: number | null; percentage: number };
@@ -22,10 +23,25 @@ const MODE_TABS: { value: Mode; label: string }[] = [
   { value: "exam", label: "Quarterly Exam" },
 ];
 
-export function GradeEntryClient(props: {
-  assignments: Assignment[];
+export function GradeEntryClient({
+  sections,
+  subjects,
+  quarters,
+  activeSectionId,
+  activeSubjectId,
+  activeQuarterId,
+  mode,
+  week,
+  totalWeeks,
+  students,
+  existingScores,
+  schoolYearId,
+}: {
+  sections: SectionOpt[];
+  subjects: SubjectOpt[];
   quarters: QuarterOpt[];
-  activeAssignmentId: string;
+  activeSectionId: string;
+  activeSubjectId: string;
   activeQuarterId: string;
   mode: Mode;
   week: number;
@@ -33,21 +49,23 @@ export function GradeEntryClient(props: {
   students: StudentOpt[];
   existingScores: ExistingScore[];
   schoolYearId: string;
-  subjectId: string;
 }) {
-  const { assignments, quarters, activeAssignmentId, activeQuarterId, mode, week, totalWeeks, students, existingScores, schoolYearId, subjectId } = props;
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [entryMode, setEntryMode] = useState<"percentage" | "raw">("percentage");
-  const [maxScore, setMaxScore] = useState(100);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const existingByStudent = useMemo(() => new Map(existingScores.map((s) => [s.student_id, s])), [existingScores]);
+  // A saved raw score tells us what it was marked out of; default to
+  // that so reopening a week shows the same "out of" the teacher used.
+  const savedMax = existingScores.find((s) => s.max_score != null)?.max_score ?? null;
+  const [entryMode, setEntryMode] = useState<"percentage" | "raw">(savedMax != null ? "raw" : "percentage");
+  const [maxScore, setMaxScore] = useState(savedMax ?? 100);
 
   const [values, setValues] = useState<Record<string, { raw: string; percentage: string }>>(() => {
+    const byStudent = new Map(existingScores.map((s) => [s.student_id, s]));
     const initial: Record<string, { raw: string; percentage: string }> = {};
     for (const s of students) {
-      const existing = existingByStudent.get(s.id);
+      const existing = byStudent.get(s.id);
       initial[s.id] = {
         raw: existing?.raw_score != null ? String(existing.raw_score) : "",
         percentage: existing ? String(existing.percentage) : "",
@@ -56,9 +74,10 @@ export function GradeEntryClient(props: {
     return initial;
   });
 
-  function updateQuery(next: Partial<{ assignment: string; quarter: string; mode: string; week: string }>) {
+  function updateQuery(next: Partial<Record<"section" | "subject" | "quarter" | "mode" | "week", string>>) {
     const params = new URLSearchParams({
-      assignment: activeAssignmentId,
+      section: activeSectionId,
+      subject: activeSubjectId,
       quarter: activeQuarterId,
       mode,
       week: String(week),
@@ -76,22 +95,53 @@ export function GradeEntryClient(props: {
     setValues((v) => ({ ...v, [studentId]: { raw: "", percentage: pct } }));
   }
 
+  /**
+   * Changing "out of N" has to recompute every percentage already
+   * typed — otherwise 18 entered as "out of 100" silently stays 18%
+   * after switching to "out of 20", and that wrong number is what
+   * gets saved as the grade.
+   */
+  function changeMaxScore(nextMax: number) {
+    setMaxScore(nextMax);
+    setValues((v) => {
+      const next: typeof v = {};
+      for (const [studentId, entry] of Object.entries(v)) {
+        next[studentId] =
+          entry.raw === ""
+            ? entry
+            : { raw: entry.raw, percentage: String(rawToPercentage(Number(entry.raw), nextMax)) };
+      }
+      return next;
+    });
+  }
+
   function save() {
+    setError(null);
     const entries = students.map((s) => {
       const v = values[s.id];
-      const percentage = v?.percentage === "" || v?.percentage == null ? null : Number(v.percentage);
-      const raw = entryMode === "raw" && v?.raw !== "" ? Number(v.raw) : null;
+      const percentage = !v || v.percentage === "" ? null : Number(v.percentage);
+      const raw = entryMode === "raw" && v && v.raw !== "" ? Number(v.raw) : null;
       return { studentId: s.id, raw, max: raw !== null ? maxScore : null, percentage };
     });
 
     startTransition(async () => {
       const result =
         mode === "exam"
-          ? await saveExamScores({ quarterId: activeQuarterId, schoolYearId, subjectId, entries })
-          : await saveWeeklyScores({ quarterId: activeQuarterId, schoolYearId, subjectId, assessmentType: mode, weekNumber: week, entries });
+          ? await saveExamScores({ quarterId: activeQuarterId, schoolYearId, subjectId: activeSubjectId, entries })
+          : await saveWeeklyScores({
+              quarterId: activeQuarterId,
+              schoolYearId,
+              subjectId: activeSubjectId,
+              assessmentType: mode,
+              weekNumber: week,
+              entries,
+            });
       if (result.ok) {
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
+        router.refresh();
+      } else {
+        setError(result.error ?? "Couldn't save these scores. Please try again.");
       }
     });
   }
@@ -100,16 +150,28 @@ export function GradeEntryClient(props: {
     <div className="space-y-5">
       <Card className="p-4">
         <div className="flex flex-wrap gap-3">
-          <div className="min-w-[220px] flex-1">
-            <Select value={activeAssignmentId} onChange={(e) => updateQuery({ assignment: e.target.value })}>
-              {assignments.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.label}
+          <div className="min-w-[200px] flex-1">
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-text-soft">Class</label>
+            <Select value={activeSectionId} onChange={(e) => updateQuery({ section: e.target.value, subject: "" })}>
+              {sections.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="min-w-[160px] flex-1">
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-text-soft">Subject</label>
+            <Select value={activeSubjectId} onChange={(e) => updateQuery({ subject: e.target.value })}>
+              {subjects.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
                 </option>
               ))}
             </Select>
           </div>
           <div className="w-40">
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-text-soft">Quarter</label>
             <Select value={activeQuarterId} onChange={(e) => updateQuery({ quarter: e.target.value })}>
               {quarters.map((q) => (
                 <option key={q.id} value={q.id}>
@@ -138,15 +200,19 @@ export function GradeEntryClient(props: {
             <div className="ml-auto flex items-center gap-1.5">
               <button
                 onClick={() => updateQuery({ week: String(Math.max(1, week - 1)) })}
-                className="rounded-md p-1.5 text-text-soft hover:bg-surface-sunken"
+                disabled={week <= 1}
+                className="rounded-md p-1.5 text-text-soft hover:bg-surface-sunken disabled:opacity-40"
                 aria-label="Previous week"
               >
                 <ChevronLeft size={16} />
               </button>
-              <span className="text-sm font-medium text-text">Week {week}</span>
+              <span className="text-sm font-medium text-text">
+                Week {week} of {totalWeeks}
+              </span>
               <button
                 onClick={() => updateQuery({ week: String(Math.min(totalWeeks, week + 1)) })}
-                className="rounded-md p-1.5 text-text-soft hover:bg-surface-sunken"
+                disabled={week >= totalWeeks}
+                className="rounded-md p-1.5 text-text-soft hover:bg-surface-sunken disabled:opacity-40"
                 aria-label="Next week"
               >
                 <ChevronRight size={16} />
@@ -178,7 +244,7 @@ export function GradeEntryClient(props: {
                 type="number"
                 min={1}
                 value={maxScore}
-                onChange={(e) => setMaxScore(Number(e.target.value) || 1)}
+                onChange={(e) => changeMaxScore(Number(e.target.value) || 1)}
                 className="h-8 w-16 rounded-md border border-border-strong bg-surface-raised px-2 text-center text-text"
               />
             </label>
@@ -237,15 +303,18 @@ export function GradeEntryClient(props: {
         </table>
       </Card>
 
-      <div className="flex items-center gap-3">
-        <Button onClick={save} disabled={pending || students.length === 0}>
-          <Save size={16} /> {pending ? "Saving…" : "Save scores"}
-        </Button>
-        {saved && (
-          <span className="inline-flex items-center gap-1 text-sm text-status-good">
-            <Check size={15} /> Saved
-          </span>
-        )}
+      <div className="space-y-2">
+        <div className="flex items-center gap-3">
+          <Button onClick={save} disabled={pending || students.length === 0}>
+            <Save size={16} /> {pending ? "Saving…" : "Save scores"}
+          </Button>
+          {saved && (
+            <span className="inline-flex items-center gap-1 text-sm text-status-good">
+              <Check size={15} /> Saved
+            </span>
+          )}
+        </div>
+        {error && <p className="rounded-lg bg-status-bad-bg px-3 py-2 text-sm text-status-bad">{error}</p>}
       </div>
     </div>
   );

@@ -1,9 +1,12 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient, authDisabled } from "@/lib/supabase/server";
+import { ACT_AS_COOKIE } from "@/lib/testing-mode";
 import type { Teacher } from "@/lib/types";
 
 export type CurrentTeacher = Teacher & { school_name: string | null };
 
+/** Used when open testing mode is on but no teachers exist yet. */
 const PLACEHOLDER_TEACHER: CurrentTeacher = {
   id: "00000000-0000-0000-0000-000000000000",
   full_name: "Test Admin",
@@ -16,17 +19,30 @@ const PLACEHOLDER_TEACHER: CurrentTeacher = {
   school_name: null,
 };
 
+function withSchoolName(row: unknown): CurrentTeacher {
+  const { schools, ...rest } = row as Teacher & { schools: { name: string } | null };
+  return { ...rest, school_name: schools?.name ?? null };
+}
+
 /**
- * Loads the signed-in teacher's profile row, redirecting to /login if
- * absent. In DISABLE_AUTH testing mode, skips the login check entirely
- * and impersonates a real master admin if one exists (so assignments/
- * data look right) or a synthetic placeholder if the database is empty.
+ * Who the app should treat this request as.
+ *
+ * Normally that's the signed-in teacher. In open testing mode there's
+ * no sign-in, so it's whoever the "viewing as" switcher picked —
+ * falling back to a master admin so everything is reachable.
  */
 export async function requireTeacher(): Promise<CurrentTeacher> {
   const supabase = await createClient();
 
   if (authDisabled()) {
-    const { data: teacher } = await supabase
+    const actingAs = (await cookies()).get(ACT_AS_COOKIE)?.value;
+
+    if (actingAs) {
+      const { data } = await supabase.from("teachers").select("*, schools(name)").eq("id", actingAs).maybeSingle();
+      if (data) return withSchoolName(data);
+    }
+
+    const { data: admin } = await supabase
       .from("teachers")
       .select("*, schools(name)")
       .eq("is_master_admin", true)
@@ -34,10 +50,7 @@ export async function requireTeacher(): Promise<CurrentTeacher> {
       .limit(1)
       .maybeSingle();
 
-    if (!teacher) return PLACEHOLDER_TEACHER;
-
-    const { schools, ...rest } = teacher as unknown as Teacher & { schools: { name: string } | null };
-    return { ...rest, school_name: schools?.name ?? null };
+    return admin ? withSchoolName(admin) : PLACEHOLDER_TEACHER;
   }
 
   const {
@@ -54,8 +67,7 @@ export async function requireTeacher(): Promise<CurrentTeacher> {
 
   if (!teacher) redirect("/login");
 
-  const { schools, ...rest } = teacher as unknown as Teacher & { schools: { name: string } | null };
-  return { ...rest, school_name: schools?.name ?? null };
+  return withSchoolName(teacher);
 }
 
 export function roleLabel(teacher: Pick<Teacher, "is_master_admin" | "is_head_teacher">): string {

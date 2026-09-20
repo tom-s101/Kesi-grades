@@ -2,20 +2,31 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { Database } from "@/lib/types";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { openAccessEnabled } from "@/lib/testing-mode";
 
 /**
- * TESTING ONLY: when DISABLE_AUTH=true, every request uses the
+ * TESTING ONLY: in open access mode every request uses the
  * service-role client instead of a real session — this bypasses RLS
  * entirely, so anyone with the URL sees and can edit every school's
- * data with no login. Never set this in an environment real student
- * data will touch. See docs/SUPABASE_SETUP.md.
+ * data with no login. Turn it off before real student data goes in
+ * (see src/lib/testing-mode.ts).
  */
 export function authDisabled() {
-  return process.env.DISABLE_AUTH === "true";
+  return openAccessEnabled();
 }
 
 export async function createClient() {
   if (authDisabled()) {
+    // Without the service-role key the admin client is constructed with
+    // an undefined key and throws deep inside supabase-js. Say what is
+    // actually wrong instead.
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error(
+        "Open testing mode needs SUPABASE_SERVICE_ROLE_KEY in the environment " +
+          "(Netlify → Site configuration → Environment variables). " +
+          "Set REQUIRE_LOGIN=true instead to use the normal sign-in.",
+      );
+    }
     return createAdminClient();
   }
 

@@ -73,14 +73,18 @@ export async function updateStudent(_prev: StudentFormState, formData: FormData)
   const id = str(formData, "id");
   if (!id) return { error: "Missing student id." };
 
+  const firstName = str(formData, "first_name");
+  const lastName = str(formData, "last_name");
+  if (!firstName || !lastName) return { error: "First name and last name are required." };
+
   // grade_level_id / status are only touched when the field was actually
   // submitted — the form sends a hidden input with the *current* value
   // for teachers who aren't allowed to change them, but omitting this
   // check entirely would mean a missing field silently resets status to
   // "active" for anyone who can't see that control at all.
   const update: StudentUpdate = {
-    first_name: str(formData, "first_name") ?? undefined,
-    last_name: str(formData, "last_name") ?? undefined,
+    first_name: firstName,
+    last_name: lastName,
     middle_name: str(formData, "middle_name"),
     lrn: str(formData, "lrn"),
     sex: (str(formData, "sex") as Sex | null) ?? null,
