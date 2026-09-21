@@ -74,10 +74,12 @@ export type StudentWithMeta = import("@/lib/types").Student & {
  * here instead. Otherwise "view as Janet" would still show her the
  * whole organization, which defeats the point of checking her view.
  */
+export type VisibleStudents = { rows: StudentWithMeta[]; error: string | null };
+
 export async function getVisibleStudents(
   filters?: { schoolId?: string; gradeLevelId?: string },
   scopeTo?: { id: string; school_id: string | null; is_head_teacher: boolean; is_master_admin: boolean },
-): Promise<StudentWithMeta[]> {
+): Promise<VisibleStudents> {
   const supabase = await createClient();
   let query = supabase
     .from("students")
@@ -91,13 +93,23 @@ export async function getVisibleStudents(
       query = query.eq("school_id", scopeTo.school_id);
     } else if (!scopeTo.is_head_teacher) {
       const sectionIds = [...new Set((await getTeacherAssignments(scopeTo.id)).map((a) => a.section_id))];
-      if (sectionIds.length === 0) return [];
+      if (sectionIds.length === 0) return { rows: [], error: null };
       query = query.in("section_id", sectionIds);
     }
   }
 
-  const { data } = await query;
-  return (data ?? []) as unknown as StudentWithMeta[];
+  const { data, error } = await query;
+
+  // A failed query used to come back as an empty list, which looked
+  // exactly like "this class has no students yet". A missing column or
+  // table after a half-applied migration is the usual cause, so say so
+  // rather than quietly showing an empty roster.
+  if (error) {
+    console.error("getVisibleStudents failed:", error);
+    return { rows: [], error: error.message };
+  }
+
+  return { rows: (data ?? []) as unknown as StudentWithMeta[], error: null };
 }
 
 export type SectionOption = {

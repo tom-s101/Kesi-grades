@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     template: "%s — KESI",
   },
   description:
-    "Records, grading, and attendance for the five Katutubo Excel Schools campuses — Agbalite, Binuangan, Pinagbayanan, Sulong Ipil, and Baraas.",
+    "Records, grading, and attendance for the six Katutubo Excel Schools campuses — Agbalite, Binuangan, Pinagbayanan, Sulong Ipil, Baraas, and Kaupawan.",
 };
 
 export const viewport: Viewport = {

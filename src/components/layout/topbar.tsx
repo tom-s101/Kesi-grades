@@ -4,13 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { roleLabel } from "@/lib/auth";
 import type { CurrentTeacher } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { ACT_AS_COOKIE, openAccessEnabled } from "@/lib/testing-mode";
+import { ACT_AS_COOKIE, ROLE_COOKIE, openAccessEnabled, parseTestRole } from "@/lib/testing-mode";
 import { ActAsSwitcher, type SwitchableTeacher } from "@/components/layout/act-as-switcher";
 
 export async function Topbar({ teacher, title }: { teacher: CurrentTeacher; title?: string }) {
   const openAccess = openAccessEnabled();
   let teachers: SwitchableTeacher[] = [];
   let actingAs = "";
+  let defaultLabel = "Full access (admin)";
 
   if (openAccess) {
     const supabase = await createClient();
@@ -26,7 +27,12 @@ export async function Topbar({ teacher, title }: { teacher: CurrentTeacher; titl
       is_head_teacher: t.is_head_teacher,
       is_master_admin: t.is_master_admin,
     }));
-    actingAs = (await cookies()).get(ACT_AS_COOKIE)?.value ?? "";
+    const jar = await cookies();
+    actingAs = jar.get(ACT_AS_COOKIE)?.value ?? "";
+    defaultLabel =
+      parseTestRole(jar.get(ROLE_COOKIE)?.value) === "teacher"
+        ? "Teacher · all campuses"
+        : "Full access (admin)";
   }
 
   return (
@@ -37,7 +43,7 @@ export async function Topbar({ teacher, title }: { teacher: CurrentTeacher; titl
       </div>
       <div className="flex items-center gap-3">
         {openAccess && teachers.length > 0 && (
-          <ActAsSwitcher teachers={teachers} currentTeacherId={actingAs} />
+          <ActAsSwitcher teachers={teachers} currentTeacherId={actingAs} defaultLabel={defaultLabel} />
         )}
         <Badge tone="brand">{roleLabel(teacher)}</Badge>
         <div className="hidden text-right sm:block">

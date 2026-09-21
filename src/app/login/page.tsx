@@ -17,7 +17,7 @@ export default async function LoginPage({
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
-      <div className="relative hidden flex-col justify-between overflow-hidden bg-brand-strong p-12 text-white lg:flex bg-grain">
+      <div className="relative hidden flex-col justify-between overflow-hidden bg-brand-strong p-12 text-on-brand lg:flex bg-grain">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/95 p-1.5">
             <Image src="/brand/kesi-logo.jpg" alt="KESI" width={40} height={40} className="rounded-full object-cover" />
@@ -28,12 +28,12 @@ export default async function LoginPage({
           <p className="font-display text-4xl font-medium leading-tight">
             One record book for five campuses.
           </p>
-          <p className="mt-4 text-white/75">
+          <p className="mt-4 text-on-brand/75">
             Attendance, grading, and reporting for Agbalite, Binuangan, Pinagbayanan, Sulong Ipil,
             and Baraas — built so quarterly grades compute themselves.
           </p>
         </div>
-        <p className="text-xs text-white/50">
+        <p className="text-xs text-on-brand/60">
           Deped-aligned grading &middot; SY 2026&ndash;2027
         </p>
       </div>

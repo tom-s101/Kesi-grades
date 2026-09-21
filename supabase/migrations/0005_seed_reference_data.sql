@@ -62,10 +62,16 @@ on conflict (school_year_id) do nothing;
 
 -- Every school offers every grade level by default; head teachers can
 -- flip is_active off per school from the admin screen.
+-- The five primary campuses run Kindergarten A through Grade 5. Listed
+-- explicitly rather than cross-joining every grade level, so that once
+-- 0011 adds Grades 6-12 for Kaupawan, re-running this file can't switch
+-- secondary grades on at schools that don't have them.
 insert into school_grade_levels (school_id, grade_level_id, school_year_id, is_active)
 select s.id, gl.id, sy.id, true
 from schools s
 cross join grade_levels gl
 cross join school_years sy
 where sy.label = '2026-2027'
+  and s.slug <> 'kaupawan'
+  and gl.code in ('KA', 'KB', 'G1', 'G2', 'G3', 'G4', 'G5')
 on conflict (school_id, grade_level_id, school_year_id) do nothing;

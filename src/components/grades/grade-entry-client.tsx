@@ -189,7 +189,7 @@ export function GradeEntryClient({
               onClick={() => updateQuery({ mode: t.value, week: "1" })}
               className={cn(
                 "rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
-                mode === t.value ? "bg-brand text-white" : "bg-surface-sunken text-text-soft hover:text-text",
+                mode === t.value ? "bg-brand text-on-brand" : "bg-surface-sunken text-text-soft hover:text-text",
               )}
             >
               {t.label}

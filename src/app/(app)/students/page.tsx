@@ -24,7 +24,10 @@ export default async function StudentsPage({
     getCurrentSchoolYear(),
   ]);
 
-  const students = await getVisibleStudents({ schoolId: school, gradeLevelId: grade }, teacher);
+  const { rows: students, error: studentsError } = await getVisibleStudents(
+    { schoolId: school, gradeLevelId: grade },
+    teacher,
+  );
   const filtered = q
     ? students.filter((s) => fullName(s).toLowerCase().includes(q.toLowerCase()))
     : students;
@@ -154,8 +157,18 @@ export default async function StudentsPage({
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-text-faint">
-                    No students match these filters yet.
+                  <td colSpan={5} className="px-4 py-10 text-center">
+                    {studentsError ? (
+                      <span className="text-status-bad">
+                        <span className="block font-medium">The student list could not be loaded.</span>
+                        <span className="mt-1 block text-xs text-text-soft">
+                          {studentsError} — this usually means a migration in{" "}
+                          <code>supabase/migrations/</code> hasn&rsquo;t been run yet.
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="text-text-faint">No students match these filters yet.</span>
+                    )}
                   </td>
                 </tr>
               )}

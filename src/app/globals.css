@@ -59,6 +59,11 @@
   --brand: var(--sprout-600);
   --brand-strong: var(--sprout-700);
   --brand-soft: var(--sprout-100);
+  /* Text/icons sitting ON a brand-filled surface. The dark theme's
+     green is light, so white on it is unreadable — hence a token
+     rather than a hard-coded text-white. */
+  --on-brand: #ffffff;
+  --on-status-bad: #ffffff;
   --ring: var(--sprout-500);
   --accent: var(--harvest-500);
 
@@ -103,6 +108,8 @@
     --brand: var(--sprout-600);
     --brand-strong: var(--sprout-700);
     --brand-soft: var(--sprout-100);
+    --on-brand: #14150f;
+    --on-status-bad: #2a120d;
     --ring: var(--sprout-500);
 
     --shadow-color: 0 0 0;
@@ -146,6 +153,8 @@
   --brand: var(--sprout-600);
   --brand-strong: var(--sprout-700);
   --brand-soft: var(--sprout-100);
+  --on-brand: #14150f;
+  --on-status-bad: #2a120d;
   --ring: var(--sprout-500);
 
   --shadow-color: 0 0 0;
@@ -163,6 +172,8 @@
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
   --color-brand-soft: var(--brand-soft);
+  --color-on-brand: var(--on-brand);
+  --color-on-status-bad: var(--on-status-bad);
   --color-ring: var(--ring);
   --color-accent: var(--accent);
 

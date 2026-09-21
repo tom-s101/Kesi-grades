@@ -46,6 +46,11 @@ it, then move to the next:
     guards from blocking writes made from the SQL Editor or by the
     service-role key, which have no signed-in user to check.
 
+11. `0011_kaupawan_secondary.sql` — adds Kaupawan, the sixth campus and
+    the only one running Grades 6-12, along with grade levels G6-G12.
+    It switches those grades on at Kaupawan only, and leaves the other
+    five campuses on Kindergarten A through Grade 5.
+
 Every migration is safe to run twice, so if you lose track of where you
 got to, just run them all again from the top.
 
@@ -83,7 +88,7 @@ Copy `.env.example` to `.env.local` and fill these in.
 
 ## 5. Add your teachers
 
-**The easiest way** (no terminal needed): log in as master admin (or a
+**The easiest way** (no terminal needed): open the site as an admin (or a
 head teacher, for their own school), go to **School Admin**, and use the
 **Add teacher** button — it creates their login and roster entry directly
 from the browser. Good for one-off additions and for anyone who doesn't

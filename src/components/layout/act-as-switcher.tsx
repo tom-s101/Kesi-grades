@@ -17,9 +17,12 @@ export type SwitchableTeacher = {
 export function ActAsSwitcher({
   teachers,
   currentTeacherId,
+  defaultLabel,
 }: {
   teachers: SwitchableTeacher[];
   currentTeacherId: string;
+  /** What "nobody in particular" means — the persona picked on the landing page. */
+  defaultLabel: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -41,7 +44,7 @@ export function ActAsSwitcher({
         onChange={(e) => change(e.target.value)}
         className="h-8 max-w-[190px] rounded-md border border-border-strong bg-surface-raised px-2 text-xs text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
       >
-        <option value="">Full access (admin)</option>
+        <option value="">{defaultLabel}</option>
         {teachers.map((t) => (
           <option key={t.id} value={t.id}>
             {t.full_name}

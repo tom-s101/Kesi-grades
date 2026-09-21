@@ -16,7 +16,7 @@ export default async function ReportsPage({
   const teacher = await requireTeacher();
   const { school, grade } = await searchParams;
 
-  const [students, gradeLevels, schools] = await Promise.all([
+  const [{ rows: students }, gradeLevels, schools] = await Promise.all([
     getVisibleStudents({ schoolId: school, gradeLevelId: grade }, teacher),
     getGradeLevels(),
     teacher.is_master_admin ? getSchools() : Promise.resolve([]),
