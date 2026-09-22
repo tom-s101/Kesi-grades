@@ -1,23 +1,21 @@
-import Link from "next/link";
-import { Download, FileText } from "lucide-react";
+import { Download } from "lucide-react";
 import { requireTeacher } from "@/lib/auth";
-import { getVisibleStudents, getGradeLevels, getSchools } from "@/lib/queries";
-import { fullName } from "@/lib/format";
+import { getGradeLevels, getSchools, getStudentListRows } from "@/lib/queries";
 import { Topbar } from "@/components/layout/topbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { ReportCardPicker } from "@/components/reports/report-card-picker";
 
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ school?: string; grade?: string }>;
+  searchParams: Promise<{ school?: string }>;
 }) {
   const teacher = await requireTeacher();
-  const { school, grade } = await searchParams;
+  const { school } = await searchParams;
 
   const [{ rows: students }, gradeLevels, schools] = await Promise.all([
-    getVisibleStudents({ schoolId: school, gradeLevelId: grade }, teacher),
+    getStudentListRows(teacher),
     getGradeLevels(),
     teacher.is_master_admin ? getSchools() : Promise.resolve([]),
   ]);
@@ -27,7 +25,7 @@ export default async function ReportsPage({
   return (
     <>
       <Topbar teacher={teacher} title="Reports" />
-      <main className="flex-1 space-y-6 p-5 lg:p-8">
+      <main className="flex-1 space-y-5 p-4 lg:p-8">
         {canBulkExport && (
           <Card>
             <CardHeader>
@@ -36,22 +34,18 @@ export default async function ReportsPage({
                 CSV files you can archive, hand to the office, or transfer onto official DepEd forms.
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-wrap gap-3">
-              <a href={`/api/export/students${school ? `?school=${school}` : ""}`}>
-                <Button variant="secondary">
-                  <Download size={15} /> Students
-                </Button>
-              </a>
-              <a href={`/api/export/grades${school ? `?school=${school}` : ""}`}>
-                <Button variant="secondary">
-                  <Download size={15} /> Grades
-                </Button>
-              </a>
-              <a href={`/api/export/attendance${school ? `?school=${school}` : ""}`}>
-                <Button variant="secondary">
-                  <Download size={15} /> Attendance
-                </Button>
-              </a>
+            <CardContent className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:gap-3">
+              {[
+                { href: "/api/export/students", label: "Students" },
+                { href: "/api/export/grades", label: "Grades" },
+                { href: "/api/export/attendance", label: "Attendance" },
+              ].map((x) => (
+                <a key={x.href} href={`${x.href}${school ? `?school=${school}` : ""}`}>
+                  <Button variant="secondary" className="h-11 w-full sm:h-10 sm:w-auto">
+                    <Download size={15} /> {x.label}
+                  </Button>
+                </a>
+              ))}
             </CardContent>
           </Card>
         )}
@@ -62,48 +56,12 @@ export default async function ReportsPage({
             <CardDescription>Printable, DepEd-style — save as PDF or print directly.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="mb-4 flex flex-wrap gap-3" action="/reports">
-              {teacher.is_master_admin && (
-                <div className="w-48">
-                  <Select name="school" defaultValue={school ?? ""}>
-                    <option value="">All schools</option>
-                    {schools.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-              )}
-              <div className="w-44">
-                <Select name="grade" defaultValue={grade ?? ""}>
-                  <option value="">All grades</option>
-                  {gradeLevels.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.name}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-              <Button type="submit" variant="secondary">
-                Filter
-              </Button>
-            </form>
-
-            <div className="divide-y divide-border">
-              {students.map((s) => (
-                <div key={s.id} className="flex items-center justify-between py-2.5">
-                  <span className="text-sm font-medium text-text">{fullName(s)}</span>
-                  <Link
-                    href={`/reports/report-card/${s.id}`}
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline"
-                  >
-                    <FileText size={14} /> View report card
-                  </Link>
-                </div>
-              ))}
-              {students.length === 0 && <p className="py-8 text-center text-text-faint">No students found.</p>}
-            </div>
+            <ReportCardPicker
+              students={students}
+              gradeLevels={gradeLevels}
+              schools={schools}
+              showSchool={teacher.is_master_admin}
+            />
           </CardContent>
         </Card>
       </main>

@@ -23,7 +23,7 @@ export default async function NewStudentPage() {
   return (
     <>
       <Topbar teacher={teacher} title="Add a student" />
-      <main className="max-w-2xl flex-1 p-5 lg:p-8">
+      <main className="max-w-2xl flex-1 p-4 lg:p-8">
         <StudentForm
           mode="create"
           gradeLevels={gradeLevels}

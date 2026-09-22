@@ -4,6 +4,12 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireTeacher } from "@/lib/auth";
+import { clearReferenceCache } from "@/lib/reference-cache";
+
+/** The top bar's teacher picker is cached — drop it when the roster changes. */
+function teacherRosterChanged() {
+  clearReferenceCache("switchable_teachers");
+}
 
 export async function setGradeLevelActive(input: {
   schoolId: string;
@@ -86,6 +92,7 @@ export async function reassignClass(input: {
 export async function setTeacherActive(teacherId: string, active: boolean) {
   const supabase = await createClient();
   const { error } = await supabase.from("teachers").update({ active }).eq("id", teacherId);
+  teacherRosterChanged();
   revalidatePath("/school");
   return { error: error?.message };
 }
@@ -101,6 +108,7 @@ export async function renameTeacher(teacherId: string, fullName: string) {
     .select("id");
   if (error) return { error: error.message };
   if (!data || data.length === 0) return { error: "You don't have permission to rename this teacher." };
+  teacherRosterChanged();
   revalidatePath("/school");
   revalidatePath("/dashboard");
   return { ok: true };
@@ -155,6 +163,7 @@ export async function createTeacher(_prev: CreateTeacherState, formData: FormDat
   });
   if (insertError) return { error: insertError.message };
 
+  teacherRosterChanged();
   revalidatePath("/school");
   return { ok: true };
 }

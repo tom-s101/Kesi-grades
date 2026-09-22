@@ -5,6 +5,7 @@ import { schoolToday } from "@/lib/school-time";
 import { Topbar } from "@/components/layout/topbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { AttendanceClient } from "@/components/attendance/attendance-client";
+import type { AttendanceStatus } from "@/lib/types";
 
 export default async function AttendancePage({
   searchParams,
@@ -25,7 +26,7 @@ export default async function AttendancePage({
     return (
       <>
         <Topbar teacher={teacher} title="Attendance" />
-        <main className="flex-1 p-5 lg:p-8">
+        <main className="flex-1 p-4 lg:p-8">
           <Card>
             <CardContent className="py-10 text-center text-text-soft">
               {!schoolYear
@@ -41,26 +42,50 @@ export default async function AttendancePage({
   const activeClass = classes.find((c) => c.id === sp.class) ?? classes[0];
   const date = sp.date ?? schoolToday();
 
-  const { data: students } = await supabase
-    .from("students")
-    .select("id, first_name, middle_name, last_name")
-    .eq("section_id", activeClass.id)
-    .eq("status", "active")
-    .order("last_name");
+  // Marks are pulled by joining through to the class rather than by
+  // first fetching the roster and then asking again with its ids, so
+  // both queries can go out at the same time.
+  const [{ data: students }, joined] = await Promise.all([
+    supabase
+      .from("students")
+      .select("id, first_name, middle_name, last_name")
+      .eq("section_id", activeClass.id)
+      .eq("status", "active")
+      .order("last_name"),
+    supabase
+      .from("attendance_records")
+      .select("student_id, session, status, students!inner(section_id)")
+      .eq("attendance_date", date)
+      .eq("students.section_id", activeClass.id),
+  ]);
 
-  const studentIds = (students ?? []).map((s) => s.id);
-  const { data: existing } = studentIds.length
-    ? await supabase
+  // The hand-written Database type can't describe an !inner join, so
+  // the shape is asserted rather than inferred.
+  type Mark = { student_id: string; session: "am" | "pm"; status: AttendanceStatus };
+  let existingMarks = (joined.data ?? []) as unknown as Mark[];
+
+  // Showing an unmarked sheet when marks do exist would let a teacher
+  // save right over them, so a failed join falls back to the plain
+  // two-step lookup rather than quietly returning nothing.
+  if (joined.error) {
+    console.error("attendance join failed, falling back:", joined.error);
+    const studentIds = (students ?? []).map((s) => s.id);
+    if (studentIds.length) {
+      const { data } = await supabase
         .from("attendance_records")
         .select("student_id, session, status")
         .eq("attendance_date", date)
-        .in("student_id", studentIds)
-    : { data: [] };
+        .in("student_id", studentIds);
+      existingMarks = (data ?? []) as Mark[];
+    } else {
+      existingMarks = [];
+    }
+  }
 
   return (
     <>
       <Topbar teacher={teacher} title="Attendance" />
-      <main className="flex-1 space-y-5 p-5 lg:p-8">
+      <main className="flex-1 space-y-5 p-4 lg:p-8">
         <AttendanceClient
           // Remount when the class or date changes, so the marks on
           // screen always belong to what's selected.
@@ -72,7 +97,7 @@ export default async function AttendancePage({
             id: s.id,
             name: `${s.last_name}, ${s.first_name}${s.middle_name ? " " + s.middle_name[0] + "." : ""}`,
           }))}
-          existing={existing ?? []}
+          existing={existingMarks}
           schoolYearId={schoolYear.id}
         />
       </main>

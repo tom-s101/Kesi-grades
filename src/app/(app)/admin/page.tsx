@@ -141,7 +141,7 @@ export default async function OrgAdminPage({
   return (
     <>
       <Topbar teacher={teacher} title="Organization Dashboard" />
-      <main className="flex-1 space-y-6 p-5 lg:p-8">
+      <main className="flex-1 space-y-6 p-4 lg:p-8">
         <AdminFilters schools={schools} gradeLevels={gradeLevels} subjects={subjects} />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -59,7 +59,7 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
   return (
     <>
       <Topbar teacher={teacher} title={fullName(student)} />
-      <main className="flex-1 space-y-6 p-5 lg:p-8">
+      <main className="flex-1 space-y-6 p-4 lg:p-8">
         <div className="flex flex-wrap items-start gap-6">
           <Card className="flex-1 min-w-[280px]">
             <CardContent className="flex items-center gap-4 !p-5">

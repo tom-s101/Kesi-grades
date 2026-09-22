@@ -54,7 +54,7 @@ export default async function ReportCardPage({ params }: { params: Promise<{ id:
   return (
     <>
       <Topbar teacher={teacher} title="Report Card" />
-      <main className="flex-1 space-y-4 p-5 lg:p-8">
+      <main className="flex-1 space-y-4 p-4 lg:p-8">
         <div className="no-print">
           <PrintButton />
         </div>

@@ -23,7 +23,7 @@ export default async function GradesPage({
     return (
       <>
         <Topbar teacher={teacher} title="Grades" />
-        <main className="flex-1 p-5 lg:p-8">
+        <main className="flex-1 p-4 lg:p-8">
           <Card>
             <CardContent className="py-10 text-center text-text-soft">
               {!schoolYear || quarters.length === 0
@@ -43,7 +43,7 @@ export default async function GradesPage({
     return (
       <>
         <Topbar teacher={teacher} title="Grades" />
-        <main className="flex-1 p-5 lg:p-8">
+        <main className="flex-1 p-4 lg:p-8">
           <Card>
             <CardContent className="py-10 text-center text-text-soft">
               You aren&rsquo;t assigned any subjects for this class yet.
@@ -61,36 +61,39 @@ export default async function GradesPage({
   const currentWeek = weekNumberInQuarter(activeQuarter);
   const week = Math.min(totalWeeks, Math.max(1, Number(sp.week) || currentWeek || 1));
 
-  const { data: students } = await supabase
-    .from("students")
-    .select("id, first_name, middle_name, last_name")
-    .eq("section_id", activeSection.id)
-    .eq("status", "active")
-    .order("last_name");
+  // The roster and the saved scores are independent, so they go out
+  // together — one wait instead of two.
+  const scoreQuery =
+    mode === "exam"
+      ? supabase
+          .from("quarter_exam_scores")
+          .select("student_id, raw_score, max_score, percentage")
+          .eq("quarter_id", activeQuarter.id)
+          .eq("subject_id", activeSubject.id)
+      : supabase
+          .from("weekly_scores")
+          .select("student_id, raw_score, max_score, percentage")
+          .eq("quarter_id", activeQuarter.id)
+          .eq("subject_id", activeSubject.id)
+          .eq("assessment_type", mode)
+          .eq("week_number", week);
 
-  let existingScores: { student_id: string; raw_score: number | null; max_score: number | null; percentage: number }[] = [];
-  if (mode === "exam") {
-    const { data } = await supabase
-      .from("quarter_exam_scores")
-      .select("student_id, raw_score, max_score, percentage")
-      .eq("quarter_id", activeQuarter.id)
-      .eq("subject_id", activeSubject.id);
-    existingScores = data ?? [];
-  } else {
-    const { data } = await supabase
-      .from("weekly_scores")
-      .select("student_id, raw_score, max_score, percentage")
-      .eq("quarter_id", activeQuarter.id)
-      .eq("subject_id", activeSubject.id)
-      .eq("assessment_type", mode)
-      .eq("week_number", week);
-    existingScores = data ?? [];
-  }
+  const [{ data: students }, { data: scoreRows }] = await Promise.all([
+    supabase
+      .from("students")
+      .select("id, first_name, middle_name, last_name")
+      .eq("section_id", activeSection.id)
+      .eq("status", "active")
+      .order("last_name"),
+    scoreQuery,
+  ]);
+
+  const existingScores = scoreRows ?? [];
 
   return (
     <>
       <Topbar teacher={teacher} title="Grades" />
-      <main className="flex-1 space-y-5 p-5 lg:p-8">
+      <main className="flex-1 space-y-5 p-4 lg:p-8">
         <GradeEntryClient
           // Remount whenever the thing being graded changes, so the
           // boxes on screen always hold that week's scores and never

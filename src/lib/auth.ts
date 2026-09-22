@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient, authDisabled } from "@/lib/supabase/server";
@@ -53,8 +54,12 @@ function withSchoolName(row: unknown): CurrentTeacher {
  * Normally that's the signed-in teacher. In open testing mode there's
  * no sign-in, so it's whoever the "viewing as" switcher picked, else
  * the persona chosen on the landing page.
+ *
+ * Wrapped in cache() because the layout, the page and the top bar all
+ * ask independently — without it that's three identical round trips on
+ * every single navigation.
  */
-export async function requireTeacher(): Promise<CurrentTeacher> {
+export const requireTeacher = cache(async function requireTeacher(): Promise<CurrentTeacher> {
   const supabase = await createClient();
 
   if (authDisabled()) {
@@ -96,7 +101,7 @@ export async function requireTeacher(): Promise<CurrentTeacher> {
   if (!teacher) redirect("/login");
 
   return withSchoolName(teacher);
-}
+});
 
 export function roleLabel(
   teacher: Pick<Teacher, "is_master_admin" | "is_head_teacher"> & { role_label?: string },

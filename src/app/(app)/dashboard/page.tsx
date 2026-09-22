@@ -24,65 +24,65 @@ export default async function DashboardPage() {
   const currentQuarter = quarters.length ? findCurrentQuarter(quarters) : null;
   const currentWeek = currentQuarter ? weekNumberInQuarter(currentQuarter) : null;
 
-  const [{ count: studentCount }, assignments] = await Promise.all([
+  // Everything below is independent, so it all goes out at once. Run
+  // one after another these were half a dozen serial round trips to
+  // Singapore before a single tile appeared.
+  const needsCompliance = Boolean(currentQuarter && currentWeek && !teacher.is_master_admin && !teacher.is_head_teacher);
+
+  const [{ count: studentCount }, assignments, gradesResult, summaryResult, countsResult] = await Promise.all([
     supabase.from("students").select("*", { count: "exact", head: true }).eq("status", "active"),
     getTeacherAssignments(teacher.id),
-  ]);
-
-  let quarterlyGrades: { subject_name: string; quarterly_grade: number | null }[] = [];
-  let atRiskStudents: { id: string; first_name: string; last_name: string; effective_absences: number; should_be_dropped: boolean }[] = [];
-  const missingWeeklyEntries: { grade: string; subject: string; type: string }[] = [];
-
-  if (currentQuarter) {
-    const { data: grades } = await supabase
-      .from("quarterly_grades")
-      .select("subject_name, quarterly_grade")
-      .eq("quarter_id", currentQuarter.id);
-    quarterlyGrades = grades ?? [];
-
-    if (schoolYear) {
-      const { data: summaries } = await supabase
-        .from("student_attendance_summary")
-        .select("student_id, effective_absences, should_be_dropped, at_warning")
-        .eq("school_year_id", schoolYear.id)
-        .eq("at_warning", true);
-
-      if (summaries?.length) {
-        const { data: students } = await supabase
-          .from("students")
-          .select("id, first_name, last_name")
-          .in(
-            "id",
-            summaries.map((s) => s.student_id),
-          );
-        atRiskStudents = (students ?? []).map((s) => {
-          const summary = summaries.find((x) => x.student_id === s.id)!;
-          return { ...s, effective_absences: summary.effective_absences, should_be_dropped: summary.should_be_dropped };
-        });
-      }
-    }
-
-    if (currentWeek) {
-      const relevantAssignments = teacher.is_master_admin || teacher.is_head_teacher ? [] : assignments;
-      if (relevantAssignments.length) {
-        const { data: counts } = await supabase
+    currentQuarter
+      ? supabase.from("quarterly_grades").select("subject_name, quarterly_grade").eq("quarter_id", currentQuarter.id)
+      : Promise.resolve({ data: [] as { subject_name: string; quarterly_grade: number | null }[] }),
+    currentQuarter && schoolYear
+      ? supabase
+          .from("student_attendance_summary")
+          .select("student_id, effective_absences, should_be_dropped, at_warning")
+          .eq("school_year_id", schoolYear.id)
+          .eq("at_warning", true)
+      : Promise.resolve({ data: [] as { student_id: string; effective_absences: number; should_be_dropped: boolean }[] }),
+    needsCompliance
+      ? supabase
           .from("weekly_entry_counts")
           .select("section_id, subject_id, assessment_type")
           .eq("teacher_id", teacher.id)
-          .eq("quarter_id", currentQuarter.id)
-          .eq("week_number", currentWeek);
-        const covered = new Set((counts ?? []).map((c) => `${c.section_id}:${c.subject_id}:${c.assessment_type}`));
+          .eq("quarter_id", currentQuarter!.id)
+          .eq("week_number", currentWeek!)
+      : Promise.resolve({ data: [] as { section_id: string; subject_id: string; assessment_type: string }[] }),
+  ]);
 
-        for (const a of relevantAssignments) {
-          for (const type of ["quiz", "homework_participation"] as const) {
-            if (!covered.has(`${a.section_id}:${a.subject_id}:${type}`)) {
-              missingWeeklyEntries.push({
-                grade: a.grade_levels?.name ?? "",
-                subject: a.subjects?.name ?? "",
-                type: type === "quiz" ? "Quizzes" : "Homework / Participation",
-              });
-            }
-          }
+  const quarterlyGrades = gradesResult.data ?? [];
+  const summaries = summaryResult.data ?? [];
+  const missingWeeklyEntries: { grade: string; subject: string; type: string }[] = [];
+
+  // Names for the at-risk list can only be fetched once we know who is
+  // at risk, so this one genuinely has to wait its turn.
+  let atRiskStudents: { id: string; first_name: string; last_name: string; effective_absences: number; should_be_dropped: boolean }[] = [];
+  if (summaries.length) {
+    const { data: students } = await supabase
+      .from("students")
+      .select("id, first_name, last_name")
+      .in(
+        "id",
+        summaries.map((s) => s.student_id),
+      );
+    atRiskStudents = (students ?? []).map((s) => {
+      const summary = summaries.find((x) => x.student_id === s.id)!;
+      return { ...s, effective_absences: summary.effective_absences, should_be_dropped: summary.should_be_dropped };
+    });
+  }
+
+  if (needsCompliance) {
+    const covered = new Set((countsResult.data ?? []).map((c) => `${c.section_id}:${c.subject_id}:${c.assessment_type}`));
+    for (const a of assignments) {
+      for (const type of ["quiz", "homework_participation"] as const) {
+        if (!covered.has(`${a.section_id}:${a.subject_id}:${type}`)) {
+          missingWeeklyEntries.push({
+            grade: a.grade_levels?.name ?? "",
+            subject: a.subjects?.name ?? "",
+            type: type === "quiz" ? "Quizzes" : "Homework / Participation",
+          });
         }
       }
     }
@@ -105,7 +105,7 @@ export default async function DashboardPage() {
   return (
     <>
       <Topbar teacher={teacher} title={`Welcome, ${teacher.full_name.split(" ")[0]}`} />
-      <main className="flex-1 space-y-6 p-5 lg:p-8">
+      <main className="flex-1 space-y-6 p-4 lg:p-8">
         {currentQuarter ? (
           <p className="text-sm text-text-soft">
             {currentQuarter.name} &middot; Week {currentWeek ?? "exam"} &middot; {schoolYear?.label}

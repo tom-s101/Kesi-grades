@@ -1,40 +1,51 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { cacheReference } from "@/lib/reference-cache";
+import type { Quarter } from "@/lib/types";
 
 /** The single school_years row flagged is_current — the whole app pivots off this. */
-export async function getCurrentSchoolYear() {
+export const getCurrentSchoolYear = cacheReference("school_year", async () => {
   const supabase = await createClient();
   const { data } = await supabase.from("school_years").select("*").eq("is_current", true).single();
   return data;
+});
+
+const quartersByYear = new Map<string, () => Promise<Quarter[]>>();
+
+export async function getQuarters(schoolYearId: string): Promise<Quarter[]> {
+  let load = quartersByYear.get(schoolYearId);
+  if (!load) {
+    load = cacheReference(`quarters:${schoolYearId}`, async () => {
+      const supabase = await createClient();
+      const { data } = await supabase
+        .from("quarters")
+        .select("*")
+        .eq("school_year_id", schoolYearId)
+        .order("number");
+      return (data ?? []) as Quarter[];
+    });
+    quartersByYear.set(schoolYearId, load);
+  }
+  return load();
 }
 
-export async function getQuarters(schoolYearId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("quarters")
-    .select("*")
-    .eq("school_year_id", schoolYearId)
-    .order("number");
-  return data ?? [];
-}
-
-export async function getSubjects() {
+export const getSubjects = cacheReference("subjects", async () => {
   const supabase = await createClient();
   const { data } = await supabase.from("subjects").select("*").order("sort_order");
   return data ?? [];
-}
+});
 
-export async function getGradeLevels() {
+export const getGradeLevels = cacheReference("grade_levels", async () => {
   const supabase = await createClient();
   const { data } = await supabase.from("grade_levels").select("*").order("sort_order");
   return data ?? [];
-}
+});
 
-export async function getSchools() {
+export const getSchools = cacheReference("schools", async () => {
   const supabase = await createClient();
   const { data } = await supabase.from("schools").select("*").order("name");
   return data ?? [];
-}
+});
 
 export type TeacherAssignment = {
   id: string;
@@ -59,57 +70,110 @@ export async function getTeacherAssignments(teacherId: string): Promise<TeacherA
   return (data ?? []) as unknown as TeacherAssignment[];
 }
 
-export type StudentWithMeta = import("@/lib/types").Student & {
-  grade_levels: { code: string; name: string } | null;
-  schools: { name: string } | null;
-  class_sections: { name: string } | null;
+export type StudentListRow = {
+  id: string;
+  name: string;
+  initials: string;
+  status: string;
+  schoolId: string;
+  schoolName: string;
+  gradeLevelId: string | null;
+  gradeName: string;
+  sectionName: string | null;
+  absences: number;
+  atWarning: boolean;
+  shouldBeDropped: boolean;
 };
 
 /**
- * Students visible to the current session.
+ * The whole roster a person may see, in the shape the list screen
+ * needs and nothing more.
  *
- * Normally row-level security does the scoping. In open testing mode
- * the app runs with the service-role key, which bypasses RLS — so when
- * a specific teacher is being viewed-as, the same scoping is applied
- * here instead. Otherwise "view as Janet" would still show her the
- * whole organization, which defeats the point of checking her view.
+ * Deliberately unfiltered: the filters live in the browser now. Asking
+ * the server again for every change of school or grade meant a full
+ * page round trip — several seconds on a phone — to narrow a list that
+ * was already on screen.
  */
-export type VisibleStudents = { rows: StudentWithMeta[]; error: string | null };
-
-export async function getVisibleStudents(
-  filters?: { schoolId?: string; gradeLevelId?: string },
-  scopeTo?: { id: string; school_id: string | null; is_head_teacher: boolean; is_master_admin: boolean },
-): Promise<VisibleStudents> {
+export async function getStudentListRows(teacher: {
+  id: string;
+  school_id: string | null;
+  is_head_teacher: boolean;
+  is_master_admin: boolean;
+}): Promise<{ rows: StudentListRow[]; error: string | null }> {
   const supabase = await createClient();
+  const schoolYear = await getCurrentSchoolYear();
+
   let query = supabase
     .from("students")
-    .select("*, grade_levels(code, name), schools(name), class_sections(name)")
+    .select(
+      "id, first_name, middle_name, last_name, status, school_id, current_grade_level_id, grade_levels(name), schools(name), class_sections(name)",
+    )
     .order("last_name");
-  if (filters?.schoolId) query = query.eq("school_id", filters.schoolId);
-  if (filters?.gradeLevelId) query = query.eq("current_grade_level_id", filters.gradeLevelId);
 
-  if (scopeTo && !scopeTo.is_master_admin) {
-    if (scopeTo.is_head_teacher && scopeTo.school_id) {
-      query = query.eq("school_id", scopeTo.school_id);
-    } else if (!scopeTo.is_head_teacher) {
-      const sectionIds = [...new Set((await getTeacherAssignments(scopeTo.id)).map((a) => a.section_id))];
+  if (!teacher.is_master_admin) {
+    if (teacher.is_head_teacher && teacher.school_id) {
+      query = query.eq("school_id", teacher.school_id);
+    } else if (!teacher.is_head_teacher) {
+      const sectionIds = [...new Set((await getTeacherAssignments(teacher.id)).map((a) => a.section_id))];
       if (sectionIds.length === 0) return { rows: [], error: null };
       query = query.in("section_id", sectionIds);
     }
   }
 
-  const { data, error } = await query;
+  // The roster and the attendance tallies don't depend on each other,
+  // so they go out together rather than one after the other.
+  const [{ data, error }, summaryResult] = await Promise.all([
+    query,
+    schoolYear
+      ? supabase
+          .from("student_attendance_summary")
+          .select("student_id, effective_absences, at_warning, should_be_dropped")
+          .eq("school_year_id", schoolYear.id)
+      : Promise.resolve({ data: [] as never[] }),
+  ]);
 
-  // A failed query used to come back as an empty list, which looked
-  // exactly like "this class has no students yet". A missing column or
-  // table after a half-applied migration is the usual cause, so say so
-  // rather than quietly showing an empty roster.
   if (error) {
-    console.error("getVisibleStudents failed:", error);
+    console.error("getStudentListRows failed:", error);
     return { rows: [], error: error.message };
   }
 
-  return { rows: (data ?? []) as unknown as StudentWithMeta[], error: null };
+  type SummaryRow = { student_id: string; effective_absences: number; at_warning: boolean; should_be_dropped: boolean };
+  const summaries = new Map<string, SummaryRow>(
+    ((summaryResult.data ?? []) as SummaryRow[]).map((s) => [s.student_id, s]),
+  );
+
+  type Row = {
+    id: string;
+    first_name: string;
+    middle_name: string | null;
+    last_name: string;
+    status: string;
+    school_id: string;
+    current_grade_level_id: string | null;
+    grade_levels: { name: string } | null;
+    schools: { name: string } | null;
+    class_sections: { name: string } | null;
+  };
+
+  const rows = ((data ?? []) as unknown as Row[]).map((r) => {
+    const summary = summaries.get(r.id);
+    return {
+      id: r.id,
+      name: [r.first_name, r.middle_name, r.last_name].filter(Boolean).join(" "),
+      initials: `${r.first_name[0] ?? ""}${r.last_name[0] ?? ""}`.toUpperCase(),
+      status: r.status,
+      schoolId: r.school_id,
+      schoolName: r.schools?.name ?? "—",
+      gradeLevelId: r.current_grade_level_id,
+      gradeName: r.grade_levels?.name ?? "Unassigned",
+      sectionName: r.class_sections?.name ?? null,
+      absences: summary?.effective_absences ?? 0,
+      atWarning: summary?.at_warning ?? false,
+      shouldBeDropped: summary?.should_be_dropped ?? false,
+    };
+  });
+
+  return { rows, error: null };
 }
 
 export type SectionOption = {

@@ -182,31 +182,34 @@ export function SchoolAdminClient({
                           }}
                           className="mb-2 rounded-md border border-transparent bg-transparent px-1 text-sm font-semibold text-text hover:border-border-strong focus-visible:border-border-strong focus-visible:outline-none"
                         />
-                        <table className="w-full text-sm">
-                          <tbody>
-                            {subjects.map((subj) => (
-                              <tr key={subj.id} className="border-b border-border last:border-0">
-                                <td className="py-1.5 pr-4 text-text-soft">{subj.name}</td>
-                                <td className="py-1.5">
-                                  <Select
-                                    className="max-w-[220px]"
-                                    value={assignMap[`${section.id}:${subj.id}`] ?? ""}
-                                    onChange={(e) => changeTeacher(section.id, subj.id, e.target.value)}
-                                  >
-                                    <option value="" disabled>
-                                      Unassigned
-                                    </option>
-                                    {teachers.map((t) => (
-                                      <option key={t.id} value={t.id}>
-                                        {t.full_name}
-                                      </option>
-                                    ))}
-                                  </Select>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                        {/* Subject above the picker on phones — side by
+                            side there leaves the picker too narrow to
+                            read a teacher's full name. */}
+                        <ul className="divide-y divide-border text-sm">
+                          {subjects.map((subj) => (
+                            <li
+                              key={subj.id}
+                              className="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                            >
+                              <span className="text-text-soft">{subj.name}</span>
+                              <Select
+                                aria-label={`Teacher for ${subj.name}`}
+                                className="h-10 w-full sm:h-9 sm:max-w-[220px]"
+                                value={assignMap[`${section.id}:${subj.id}`] ?? ""}
+                                onChange={(e) => changeTeacher(section.id, subj.id, e.target.value)}
+                              >
+                                <option value="" disabled>
+                                  Unassigned
+                                </option>
+                                {teachers.map((t) => (
+                                  <option key={t.id} value={t.id}>
+                                    {t.full_name}
+                                  </option>
+                                ))}
+                              </Select>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     ))}
                   </div>
