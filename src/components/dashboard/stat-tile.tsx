@@ -2,6 +2,13 @@ import type { LucideIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
+/**
+ * One figure, stated plainly.
+ *
+ * The number leads at display size in tabular figures so a row of tiles
+ * lines up; the label sits under it as a small tracked capital rather
+ * than competing as body text.
+ */
 export function StatTile({
   label,
   value,
@@ -23,13 +30,19 @@ export function StatTile({
   }[tone];
 
   return (
-    <Card className="p-5">
-      <div className={cn("mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg", toneClass)}>
-        <Icon size={18} />
-      </div>
-      <p className="font-display text-3xl font-medium text-text">{value}</p>
-      <p className="mt-0.5 text-sm text-text-soft">{label}</p>
-      {hint && <p className="mt-2 text-xs text-text-faint">{hint}</p>}
+    <Card className="flex items-start gap-4 p-4 sm:p-5">
+      <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", toneClass)}>
+        <Icon size={18} strokeWidth={1.75} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="tabular block font-display text-[1.75rem] font-medium leading-none tracking-tight text-text sm:text-3xl">
+          {value}
+        </span>
+        <span className="mt-2 block text-[11px] font-semibold uppercase tracking-[0.08em] text-text-faint">
+          {label}
+        </span>
+        {hint && <span className="mt-1.5 block text-xs text-text-soft">{hint}</span>}
+      </span>
     </Card>
   );
 }

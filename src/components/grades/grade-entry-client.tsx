@@ -232,7 +232,7 @@ export function GradeEntryClient({
               >
                 <ChevronLeft size={16} />
               </button>
-              <span className="text-sm font-medium text-text">
+              <span className="tabular text-sm font-medium text-text">
                 Week {week} of {totalWeeks}
               </span>
               <button
@@ -305,7 +305,7 @@ export function GradeEntryClient({
                     className="h-11 w-24 text-base"
                   />
                   {entryMode === "raw" && (
-                    <span className="w-12 shrink-0 text-right text-sm text-text-faint">
+                    <span className="tabular w-12 shrink-0 text-right text-sm text-text-faint">
                       {values[s.id]?.percentage ? `${values[s.id].percentage}%` : "—"}
                     </span>
                   )}
@@ -339,7 +339,7 @@ export function GradeEntryClient({
                         />
                       </td>
                       {entryMode === "raw" && (
-                        <td className="px-4 py-2.5 text-text-faint">{values[s.id]?.percentage || "—"}</td>
+                        <td className="tabular px-4 py-2.5 text-text-faint">{values[s.id]?.percentage || "—"}</td>
                       )}
                     </tr>
                   ))}
@@ -368,7 +368,7 @@ export function GradeEntryClient({
             </span>
           ) : (
             students.length > 0 && (
-              <span className="shrink-0 text-xs text-text-faint">
+              <span className="tabular shrink-0 text-xs text-text-faint">
                 {entered}/{students.length} entered
               </span>
             )

@@ -82,6 +82,14 @@ function EntryChoice() {
   );
 }
 
+// Whether there's a login at all is an environment decision, and it has
+// to be read per request. Prerendered at build time, this page baked in
+// whatever REQUIRE_LOGIN happened to be during the build: flip the flag
+// afterwards and /login served a stale redirect to /dashboard while the
+// middleware bounced /dashboard back to /login — an endless loop that
+// locked everyone out of the site.
+export const dynamic = "force-dynamic";
+
 export default function MarketingHome() {
   // While the site is open for testing there's no login to send people
   // to — they pick a role instead and go straight in.

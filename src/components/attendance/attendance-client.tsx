@@ -223,7 +223,7 @@ export function AttendanceClient({
             </span>
           ) : (
             students.length > 0 && (
-              <span className="shrink-0 text-xs text-text-faint">
+              <span className="tabular shrink-0 text-xs text-text-faint">
                 {marked}/{students.length} marked
               </span>
             )

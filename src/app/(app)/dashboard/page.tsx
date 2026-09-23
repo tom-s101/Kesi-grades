@@ -13,7 +13,7 @@ import { Topbar } from "@/components/layout/topbar";
 import { StatTile } from "@/components/dashboard/stat-tile";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SubjectAverageChart } from "@/components/dashboard/subject-average-chart";
+import { SubjectAverageChart } from "@/components/charts/lazy-charts";
 
 export default async function DashboardPage() {
   const teacher = await requireTeacher();

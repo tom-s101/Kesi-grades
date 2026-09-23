@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Karla, JetBrains_Mono } from "next/font/google";
+import { Fraunces, Karla } from "next/font/google";
 import { ThemeScript } from "@/components/theme/theme-script";
-import { TestingModeBanner } from "@/components/testing-mode-banner";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -14,12 +13,6 @@ const fraunces = Fraunces({
 const karla = Karla({
   subsets: ["latin"],
   variable: "--font-karla",
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-jetbrains-mono",
   display: "swap",
 });
 
@@ -50,9 +43,8 @@ export default function RootLayout({
         <ThemeScript />
       </head>
       <body
-        className={`${fraunces.variable} ${karla.variable} ${jetbrainsMono.variable} font-sans antialiased`}
+        className={`${fraunces.variable} ${karla.variable} font-sans antialiased`}
       >
-        <TestingModeBanner />
         {children}
       </body>
     </html>

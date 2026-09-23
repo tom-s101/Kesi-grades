@@ -10,7 +10,7 @@ import { StatTile } from "@/components/dashboard/stat-tile";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AdminFilters } from "@/components/admin/admin-filters";
-import { SchoolPassingRateChart } from "@/components/admin/school-passing-rate-chart";
+import { SchoolPassingRateChart } from "@/components/charts/lazy-charts";
 
 export default async function OrgAdminPage({
   searchParams,

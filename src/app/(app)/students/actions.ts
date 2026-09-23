@@ -65,6 +65,7 @@ export async function createStudent(_prev: StudentFormState, formData: FormData)
   }
 
   revalidatePath("/students");
+  revalidatePath("/reports");
   return { ok: true };
 }
 
@@ -109,5 +110,6 @@ export async function updateStudent(_prev: StudentFormState, formData: FormData)
 
   revalidatePath("/students");
   revalidatePath(`/students/${id}`);
+  revalidatePath("/reports");
   return { ok: true };
 }

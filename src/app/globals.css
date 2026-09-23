@@ -67,7 +67,15 @@
   --ring: var(--sprout-500);
   --accent: var(--harvest-500);
 
+  --skeleton-base: #ece6d8;
+  --skeleton-sheen: #f6f1e6;
+
   --shadow-color: 38 30 15;
+  /* A deliberate elevation scale, so a card, a popover and a docked bar
+     read as three different heights instead of all being outlined. */
+  --elevation-1: 0 1px 2px rgb(var(--shadow-color) / 0.05), 0 1px 1px rgb(var(--shadow-color) / 0.04);
+  --elevation-2: 0 1px 2px rgb(var(--shadow-color) / 0.06), 0 4px 12px -2px rgb(var(--shadow-color) / 0.08);
+  --elevation-3: 0 2px 4px rgb(var(--shadow-color) / 0.06), 0 12px 28px -6px rgb(var(--shadow-color) / 0.14);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -112,7 +120,13 @@
     --on-status-bad: #2a120d;
     --ring: var(--sprout-500);
 
+    --skeleton-base: #26271d;
+    --skeleton-sheen: #333528;
+
     --shadow-color: 0 0 0;
+    --elevation-1: 0 1px 2px rgb(var(--shadow-color) / 0.4);
+    --elevation-2: 0 1px 2px rgb(var(--shadow-color) / 0.4), 0 4px 12px -2px rgb(var(--shadow-color) / 0.45);
+    --elevation-3: 0 2px 4px rgb(var(--shadow-color) / 0.4), 0 12px 28px -6px rgb(var(--shadow-color) / 0.6);
   }
 }
 
@@ -157,7 +171,13 @@
   --on-status-bad: #2a120d;
   --ring: var(--sprout-500);
 
+  --skeleton-base: #26271d;
+  --skeleton-sheen: #333528;
+
   --shadow-color: 0 0 0;
+  --elevation-1: 0 1px 2px rgb(var(--shadow-color) / 0.4);
+  --elevation-2: 0 1px 2px rgb(var(--shadow-color) / 0.4), 0 4px 12px -2px rgb(var(--shadow-color) / 0.45);
+  --elevation-3: 0 2px 4px rgb(var(--shadow-color) / 0.4), 0 12px 28px -6px rgb(var(--shadow-color) / 0.6);
 }
 
 @theme inline {
@@ -188,7 +208,10 @@
 
   --font-display: var(--font-fraunces);
   --font-sans: var(--font-karla);
-  --font-mono: var(--font-jetbrains-mono);
+
+  --shadow-elev-1: var(--elevation-1);
+  --shadow-elev-2: var(--elevation-2);
+  --shadow-elev-3: var(--elevation-3);
 }
 
 * {
@@ -268,4 +291,94 @@ body {
 .animate-kesi-grow {
   transform-origin: bottom;
   animation: kesi-grow 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ---------------------------------------------------------------------
+   Loading vocabulary — see components/ui/loader.tsx.
+   Pure CSS so nothing has to run on the phone to animate it.
+   --------------------------------------------------------------------- */
+
+@keyframes kesi-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.animate-kesi-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    var(--skeleton-base) 25%,
+    var(--skeleton-sheen) 50%,
+    var(--skeleton-base) 75%
+  );
+  background-size: 200% 100%;
+  animation: kesi-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes kesi-pulse-ring {
+  0% {
+    transform: scale(0.65);
+    opacity: 0.65;
+  }
+  70%,
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+.animate-kesi-pulse-ring {
+  animation: kesi-pulse-ring 1.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+@keyframes kesi-leaf {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+.animate-kesi-leaf {
+  transform-origin: center;
+  animation: kesi-leaf 2s ease-in-out infinite;
+}
+
+/* Numbers that sit in columns should not jitter as they change. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Someone who asked their phone to stop animating things means it —
+   for decoration. Progress indicators are exempt and merely slowed:
+   a frozen spinner says "stuck" when the truth is "still working". */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-spin,
+  .animate-kesi-shimmer,
+  .animate-kesi-leaf {
+    animation-duration: 2.4s !important;
+    animation-iteration-count: infinite !important;
+  }
+
+  /* Purely decorative — these can stop. */
+  .animate-kesi-pulse-ring {
+    display: none !important;
+  }
 }

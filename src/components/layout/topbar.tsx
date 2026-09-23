@@ -47,14 +47,22 @@ export async function Topbar({ teacher, title }: { teacher: CurrentTeacher; titl
         : "Full access (admin)";
   }
 
+  // Only sticky from lg up: on a phone the compact KESI bar above this
+  // one is already pinned, and two stacked bars eat most of the screen.
   return (
-    <header className="border-b border-border bg-surface px-4 py-3 lg:px-8 lg:py-4">
+    <header className="z-20 border-b border-border bg-surface/90 px-4 py-3 backdrop-blur-md lg:sticky lg:top-0 lg:px-8 lg:py-4">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          {title && (
-            <h1 className="truncate font-display text-lg font-medium text-text lg:text-xl">{title}</h1>
+          {title ? (
+            <h1 className="truncate font-display text-lg font-medium tracking-tight text-text lg:text-2xl">
+              {title}
+            </h1>
+          ) : (
+            <p className="truncate text-sm text-text-soft">{teacher.school_name ?? "All campuses"}</p>
           )}
-          {!title && <p className="truncate text-sm text-text-soft">{teacher.school_name ?? "All campuses"}</p>}
+          {title && teacher.school_name && (
+            <p className="truncate text-xs text-text-faint lg:hidden">{teacher.school_name}</p>
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-2 lg:gap-3">
           {/* The switcher needs room for a full name, so on phones it
@@ -64,10 +72,13 @@ export async function Topbar({ teacher, title }: { teacher: CurrentTeacher; titl
               <ActAsSwitcher teachers={teachers} currentTeacherId={actingAs} defaultLabel={defaultLabel} />
             </div>
           )}
+          <div className="hidden items-center gap-2.5 lg:flex">
+            <span className="text-sm font-medium text-text">{teacher.full_name}</span>
+            <span aria-hidden className="h-4 w-px bg-border" />
+          </div>
           <Badge tone="brand" className="whitespace-nowrap">
             {roleLabel(teacher)}
           </Badge>
-          <p className="hidden text-sm font-medium text-text lg:block">{teacher.full_name}</p>
           <ThemeToggle />
         </div>
       </div>

@@ -102,7 +102,7 @@ export function StudentsClient({
           </Select>
         </div>
 
-        <p className="text-xs text-text-faint">
+        <p className="tabular text-xs text-text-faint">
           {filtered.length} of {students.length} student{students.length === 1 ? "" : "s"}
           {filtering && (
             <button
@@ -145,7 +145,7 @@ export function StudentsClient({
                     </span>
                   </span>
                   {s.atWarning && (
-                    <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-status-warn">
+                    <span className="tabular flex shrink-0 items-center gap-1 text-xs font-medium text-status-warn">
                       <TriangleAlert size={13} />
                       {s.absences}
                     </span>
@@ -195,7 +195,7 @@ export function StudentsClient({
                     </td>
                     <td className="px-4 py-3">
                       {s.atWarning ? (
-                        <span className="inline-flex items-center gap-1 text-status-warn">
+                        <span className="tabular inline-flex items-center gap-1 text-status-warn">
                           <TriangleAlert size={14} />
                           {s.absences} absences
                           {s.shouldBeDropped && (

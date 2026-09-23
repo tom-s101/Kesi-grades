@@ -38,5 +38,9 @@ export async function saveAttendance(input: {
   if (error) return { error: error.message };
   revalidatePath("/attendance");
   revalidatePath("/dashboard");
+  // Absence tallies show on the roster and the student profile too, so
+  // those have to drop their cached copies or they'll show old counts.
+  revalidatePath("/students");
+  revalidatePath("/students", "layout");
   return { ok: true };
 }
