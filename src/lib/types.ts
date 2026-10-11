@@ -109,6 +109,8 @@ export interface Database {
           whatsapp_number: string | null;
           active: boolean;
           created_at: string;
+          /** Null while they're still on the shared starting password. */
+          password_changed_at: string | null;
         },
         {
           id: string;
@@ -118,6 +120,7 @@ export interface Database {
           is_master_admin?: boolean;
           whatsapp_number?: string | null;
           active?: boolean;
+          password_changed_at?: string | null;
         }
       >;
       class_subject_teachers: Table<

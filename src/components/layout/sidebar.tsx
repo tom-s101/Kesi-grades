@@ -3,11 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Menu, ShieldAlert, X } from "lucide-react";
+import { KeyRound, LogOut, Menu, ShieldAlert, X } from "lucide-react";
 import { useState } from "react";
 import { NAV_ITEMS } from "@/components/layout/nav-config";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { ChangePasswordDialog } from "@/components/auth/change-password-dialog";
 
 export function Sidebar({
   isHeadTeacher,
@@ -26,6 +27,7 @@ export function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const items = NAV_ITEMS.filter((item) => {
     if (item.adminOnly) return isMasterAdmin;
@@ -132,14 +134,26 @@ export function Sidebar({
           )}
           {!openAccess && (
             <button
+              onClick={() => {
+                setOpen(false);
+                setChangingPassword(true);
+              }}
+              className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-text-soft transition-colors hover:bg-surface-sunken hover:text-text"
+            >
+              <KeyRound size={17} strokeWidth={1.75} /> Change password
+            </button>
+          )}
+          {!openAccess && (
+            <button
               onClick={signOut}
-              className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-text-soft transition-colors hover:bg-status-bad-bg hover:text-status-bad"
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-text-soft transition-colors hover:bg-status-bad-bg hover:text-status-bad"
             >
               <LogOut size={17} strokeWidth={1.75} /> Sign out
             </button>
           )}
         </div>
       </aside>
+      {changingPassword && <ChangePasswordDialog onClose={() => setChangingPassword(false)} />}
     </>
   );
 }

@@ -24,7 +24,7 @@ export async function createClient() {
       throw new Error(
         "Open testing mode needs SUPABASE_SERVICE_ROLE_KEY in the environment " +
           "(Netlify → Site configuration → Environment variables). " +
-          "Set REQUIRE_LOGIN=true instead to use the normal sign-in.",
+          "Remove OPEN_ACCESS to use the normal sign-in instead.",
       );
     }
     return createAdminClient();

@@ -32,6 +32,7 @@ const TEST_TEACHER: CurrentTeacher = {
   whatsapp_number: null,
   active: true,
   created_at: new Date().toISOString(),
+  password_changed_at: null,
   school_name: null,
   role_label: "Teacher · all campuses",
 };

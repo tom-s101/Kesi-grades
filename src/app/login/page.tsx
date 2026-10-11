@@ -6,7 +6,7 @@ import { openAccessEnabled } from "@/lib/testing-mode";
 
 // Whether there's a login at all is an environment decision, and it has
 // to be read per request. Prerendered at build time, this page baked in
-// whatever REQUIRE_LOGIN happened to be during the build: flip the flag
+// whatever OPEN_ACCESS happened to be during the build: flip the flag
 // afterwards and /login served a stale redirect to /dashboard while the
 // middleware bounced /dashboard back to /login — an endless loop that
 // locked everyone out of the site.
@@ -54,8 +54,14 @@ export default async function LoginPage({
           <Image src="/brand/kesi-logo.jpg" alt="KESI" width={56} height={56} className="rounded-full" />
           <span className="font-display text-lg text-text">Katutubo Excel Schools</span>
         </div>
-        <LoginFlow nextPath={next && next !== "/login" ? next : "/dashboard"} />
+        <LoginFlow nextPath={safeNextPath(next)} />
       </div>
     </div>
   );
+}
+
+/** Only ever send someone on to a page of this site after signing in. */
+function safeNextPath(next: string | undefined): string {
+  if (!next || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\") || next.startsWith("/login")) return "/dashboard";
+  return next;
 }

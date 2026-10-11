@@ -50,6 +50,10 @@ it, then move to the next:
     the only one running Grades 6-12, along with grade levels G6-G12.
     It switches those grades on at Kaupawan only, and leaves the other
     five campuses on Kindergarten A through Grade 5.
+12. `0012_teacher_name_login.sql` — teachers sign in by typing their
+    name instead of an email. Adds the column that records whether a
+    teacher has picked their own password yet (until they have, they're
+    offered the chance each time they sign in).
 
 Every migration is safe to run twice, so if you lose track of where you
 got to, just run them all again from the top.
@@ -87,6 +91,25 @@ this mostly matters if you ever create a user by hand in the dashboard).
 Copy `.env.example` to `.env.local` and fill these in.
 
 ## 5. Add your teachers
+
+**The whole roster at once:** open `supabase/seed/teachers_2026_2027.sql`,
+check the list at the top, paste the whole file into the SQL Editor and
+run it (after migration 0012). Every teacher on the list gets a login:
+they sign in by typing **their name as it appears on the list** (capitals,
+accents and extra spaces don't matter) and the starting password
+**`trueeducation`**. After signing in they're offered — not forced — the
+chance to set their own password; "Change password" in the sidebar does
+the same any time. The script also gives each teacher their classes, and
+switches off anyone at those campuses who isn't on the list. Re-running it
+never resets a password a teacher has already changed.
+
+To reset one teacher back to the starting password (they forgot theirs):
+
+```sql
+update auth.users set encrypted_password = extensions.crypt('trueeducation', extensions.gen_salt('bf'))
+where id = (select id from teachers where full_name = 'Ann Inahid');
+update teachers set password_changed_at = null where full_name = 'Ann Inahid';
+```
 
 **The easiest way** (no terminal needed): open the site as an admin (or a
 head teacher, for their own school), go to **School Admin**, and use the
@@ -132,25 +155,23 @@ the repo). Set these environment variables on the host:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY` (required — open testing mode runs on it)
-- `REQUIRE_LOGIN` — see below
+- `SUPABASE_SERVICE_ROLE_KEY` (required — sign-in looks names up with it)
+- `OPEN_ACCESS` — leave unset; see below
 - The `WHATSAPP_*` variables once you've done the WhatsApp setup (see
   `docs/WHATSAPP_INTEGRATION.md`) — the app runs fine without them, it just
   logs instead of sending.
 
-## 6b. Open testing mode vs. locked down
+## 6b. Login vs. open testing mode
 
-**The app ships open.** With no `REQUIRE_LOGIN` variable set, there is no
-sign-in at all: anyone with the URL lands straight on the dashboard with
-full master-admin access, and a **"Viewing as"** picker in the top bar lets
-you walk the site as any teacher on the roster to check what they'd see. An
-orange banner sits on every page so it can't be forgotten. This is for
-clicking through the UI before real student records go in.
+**The app requires sign-in.** Teachers type their name and password on
+`/login`; row-level security decides what each one sees.
 
-To lock it down, set **`REQUIRE_LOGIN=true`** on the host and redeploy. The
-login screen, the session check, and every row-level-security policy come
-back with no other change. Do that before real student data goes in, and
-before the URL goes anywhere outside your team.
+For trying out the UI before real data goes in, `OPEN_ACCESS=true` on the
+host switches login off entirely: anyone with the URL lands on the
+dashboard with full master-admin access, and a **"Viewing as"** picker in
+the top bar lets you walk the site as any teacher. Never leave it on once
+real student records are in. (The older `REQUIRE_LOGIN` and `DISABLE_AUTH`
+variables no longer do anything and can be deleted from the host.)
 
 ## 7. Sanity-check RLS
 

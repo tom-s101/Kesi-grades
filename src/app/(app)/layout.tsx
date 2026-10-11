@@ -1,4 +1,7 @@
+import { cookies } from "next/headers";
 import { requireTeacher } from "@/lib/auth";
+import { PasswordPrompt } from "@/components/auth/change-password-dialog";
+import { PASSWORD_LATER_COOKIE } from "@/lib/password-prompt";
 import { Sidebar } from "@/components/layout/sidebar";
 import { getCurrentSchoolYear } from "@/lib/queries";
 import { openAccessEnabled } from "@/lib/testing-mode";
@@ -13,18 +16,28 @@ export const dynamic = "force-dynamic";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // Both are already cached, so this costs nothing the pages below
   // weren't going to pay anyway.
-  const [teacher, schoolYear] = await Promise.all([requireTeacher(), getCurrentSchoolYear()]);
+  const [teacher, schoolYear, jar] = await Promise.all([requireTeacher(), getCurrentSchoolYear(), cookies()]);
+  const openAccess = openAccessEnabled();
+
+  // Still on the shared starting password, and hasn't said "not now"
+  // since signing in. Strictly null: before migration 0012 the column
+  // doesn't exist at all (undefined), and that's no reason to nag.
+  const offerPasswordChange =
+    !openAccess &&
+    teacher.password_changed_at === null &&
+    jar.get(PASSWORD_LATER_COOKIE)?.value !== teacher.id;
 
   return (
     <div className="flex min-h-screen flex-col lg:flex-row">
       <Sidebar
         isHeadTeacher={teacher.is_head_teacher}
         isMasterAdmin={teacher.is_master_admin}
-        openAccess={openAccessEnabled()}
+        openAccess={openAccess}
         schoolName={teacher.school_name}
         schoolYearLabel={schoolYear?.label}
       />
       <div className="flex min-h-screen flex-1 flex-col">{children}</div>
+      {offerPasswordChange && <PasswordPrompt />}
     </div>
   );
 }
