@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Sprout } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { signInWithName } from "@/app/login/actions";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { LoadingOverlay } from "@/components/ui/loader";
 
 export function LoginFlow({ nextPath }: { nextPath: string }) {
   const router = useRouter();
@@ -34,17 +34,20 @@ export function LoginFlow({ nextPath }: { nextPath: string }) {
       return;
     }
 
+    // Straight on to the dashboard: the welcome screen stays up for
+    // exactly as long as the dashboard takes to arrive, rather than
+    // holding everyone for a fixed couple of seconds first.
+    // (Signing in set cookies, which already clears the browser's cached
+    // pages, so there's no stale signed-out copy to refresh.)
     setWelcomeName(result.firstName);
-    setTimeout(() => {
-      router.push(nextPath);
-      router.refresh();
-    }, 1900);
+    router.replace(nextPath);
   }
 
-  if (welcomeName) return <WelcomeAnimation firstName={welcomeName} />;
+  if (welcomeName) return <LoadingOverlay label={`Welcome, ${welcomeName}! Opening your dashboard…`} />;
 
   return (
     <form onSubmit={submit} className="w-full max-w-sm animate-kesi-rise">
+      {loading && <LoadingOverlay label="Signing you in…" />}
       <h1 className="font-display text-2xl font-medium text-text">Sign in</h1>
       <p className="mt-1 text-sm text-text-soft">Type your full name and your password.</p>
 
@@ -61,7 +64,7 @@ export function LoginFlow({ nextPath }: { nextPath: string }) {
             spellCheck={false}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Ann Inahid"
+            placeholder="e.g. Adam Santos"
           />
         </div>
         <div>
@@ -90,20 +93,5 @@ export function LoginFlow({ nextPath }: { nextPath: string }) {
         Forgot your password? Ask your head teacher or the admin to reset it.
       </p>
     </form>
-  );
-}
-
-function WelcomeAnimation({ firstName }: { firstName: string }) {
-  return (
-    <div className={cn("flex flex-col items-center justify-center gap-6 text-center animate-kesi-rise")}>
-      <div className="relative flex h-20 w-20 items-center justify-center">
-        <Sprout size={40} className="animate-kesi-grow text-brand" strokeWidth={1.75} />
-      </div>
-      <div>
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-text-faint">Welcome</p>
-        <h1 className="font-display text-3xl font-medium text-text">{firstName}</h1>
-      </div>
-      <Loader2 className="animate-spin text-text-faint" size={20} />
-    </div>
   );
 }

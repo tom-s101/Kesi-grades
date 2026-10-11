@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { sessionUserId } from "@/lib/supabase/session";
 import type { AssessmentType } from "@/lib/types";
 
 export type ScoreEntry = { studentId: string; raw: number | null; max: number | null; percentage: number | null };
@@ -17,9 +18,7 @@ export async function saveWeeklyScores(input: {
   entries: ScoreEntry[];
 }): Promise<SaveResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const userId = await sessionUserId(supabase);
 
   const rows = input.entries
     .filter((e): e is ScoreEntry & { percentage: number } => e.percentage !== null)
@@ -33,7 +32,7 @@ export async function saveWeeklyScores(input: {
       raw_score: e.raw,
       max_score: e.max,
       percentage: e.percentage,
-      recorded_by: user?.id,
+      recorded_by: userId ?? undefined,
     }));
 
   if (!rows.length) return { error: "Enter at least one score before saving." };
@@ -55,9 +54,7 @@ export async function saveExamScores(input: {
   entries: ScoreEntry[];
 }): Promise<SaveResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const userId = await sessionUserId(supabase);
 
   const rows = input.entries
     .filter((e): e is ScoreEntry & { percentage: number } => e.percentage !== null)
@@ -69,7 +66,7 @@ export async function saveExamScores(input: {
       raw_score: e.raw,
       max_score: e.max,
       percentage: e.percentage,
-      recorded_by: user?.id,
+      recorded_by: userId ?? undefined,
     }));
 
   if (!rows.length) return { error: "Enter at least one score before saving." };

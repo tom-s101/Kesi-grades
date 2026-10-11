@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { cacheReference } from "@/lib/reference-cache";
 import type { Quarter } from "@/lib/types";
@@ -60,15 +61,21 @@ export type TeacherAssignment = {
   class_sections: { name: string } | null;
 };
 
-/** Grade levels + subjects a given teacher is assigned to (RLS lets anyone read this table). */
-export async function getTeacherAssignments(teacherId: string): Promise<TeacherAssignment[]> {
+/**
+ * Grade levels + subjects a given teacher is assigned to (RLS lets
+ * anyone read this table).
+ *
+ * Cached for the length of one request: the layout, the page and the
+ * helpers below all ask for it, and requireTeacher() starts it early.
+ */
+export const getTeacherAssignments = cache(async (teacherId: string): Promise<TeacherAssignment[]> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("class_subject_teachers")
     .select("*, grade_levels(code, name, sort_order), subjects(code, name, sort_order), class_sections(name)")
     .eq("teacher_id", teacherId);
   return (data ?? []) as unknown as TeacherAssignment[];
-}
+});
 
 export type StudentListRow = {
   id: string;
@@ -211,7 +218,11 @@ export async function getSectionOptions(teacher: {
     query = query.eq("school_id", teacher.school_id);
   }
 
-  const { data } = await query;
+  const regularTeacher = !teacher.is_master_admin && !teacher.is_head_teacher;
+  const [{ data }, assignments] = await Promise.all([
+    query,
+    regularTeacher ? getTeacherAssignments(teacher.id) : Promise.resolve([]),
+  ]);
   let rows = (data ?? []) as unknown as {
     id: string;
     name: string;
@@ -222,8 +233,8 @@ export async function getSectionOptions(teacher: {
     schools: { name: string } | null;
   }[];
 
-  if (!teacher.is_master_admin && !teacher.is_head_teacher) {
-    const assigned = new Set((await getTeacherAssignments(teacher.id)).map((a) => a.section_id));
+  if (regularTeacher) {
+    const assigned = new Set(assignments.map((a) => a.section_id));
     rows = rows.filter((r) => assigned.has(r.id));
   }
 

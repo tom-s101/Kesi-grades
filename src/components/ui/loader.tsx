@@ -1,4 +1,3 @@
-import { Sprout } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -6,9 +5,10 @@ import { cn } from "@/lib/utils";
  *
  * Three pieces, used consistently: a `Skeleton` block that stands in
  * for content whose shape we know, a `Spinner` for a control that's
- * working, and `PageLoader` for a whole screen that has nothing to
- * show yet. All CSS — no JavaScript runs to animate them, which
- * matters on the phones these are actually used on.
+ * working, and the morphing squares (`PageLoader`, `LoadingOverlay`)
+ * for a whole screen that has nothing to show yet. All CSS — no
+ * JavaScript runs to animate them, which matters on the phones these
+ * are actually used on.
  */
 
 export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
@@ -35,21 +35,47 @@ export function Spinner({ className, size = 16 }: { className?: string; size?: n
   );
 }
 
-/** A whole screen with nothing on it yet — the KESI sprout, breathing. */
+/**
+ * Four squares wandering and changing shape — the loader from the camp
+ * registration site, in KESI green. Keyframes in globals.css.
+ */
+export function MorphLoader({ className }: { className?: string }) {
+  return (
+    <div aria-hidden className={cn("relative flex h-32 w-32 items-center justify-center", className)}>
+      {[0, 1, 2, 3].map((i) => (
+        <span
+          key={i}
+          className={cn("kesi-morph absolute h-5 w-5", i % 2 ? "bg-brand-strong" : "bg-brand")}
+          style={{ animationName: `kesi-morph-${i}`, animationDelay: `${i * 0.2}s` }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** A whole screen (or the content area) with nothing on it yet. */
 export function PageLoader({ label = "Loading" }: { label?: string }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4 py-20" role="status" aria-live="polite">
-      <span className="relative flex h-14 w-14 items-center justify-center">
-        <span aria-hidden className="absolute inset-0 animate-kesi-pulse-ring rounded-full bg-brand-soft" />
-        <span
-          aria-hidden
-          className="absolute inset-0 animate-kesi-pulse-ring rounded-full bg-brand-soft [animation-delay:0.9s]"
-        />
-        <span className="relative flex h-11 w-11 items-center justify-center rounded-full border border-border bg-surface-raised shadow-elev-1">
-          <Sprout size={20} strokeWidth={1.75} className="animate-kesi-leaf text-brand" />
-        </span>
-      </span>
-      <p className="text-sm text-text-faint">{label}…</p>
+    <div className="flex flex-1 flex-col items-center justify-center gap-2 py-20" role="status" aria-live="polite">
+      <MorphLoader />
+      <p className="text-sm font-medium text-text-soft">{label}…</p>
+    </div>
+  );
+}
+
+/**
+ * Covers everything while something takes over the whole screen —
+ * signing in, say. Same squares, on a veil over the page.
+ */
+export function LoadingOverlay({ label }: { label: string }) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-2 bg-surface/95 backdrop-blur-sm"
+    >
+      <MorphLoader />
+      <p className="text-sm font-medium text-text">{label}</p>
     </div>
   );
 }

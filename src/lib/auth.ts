@@ -2,6 +2,8 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient, authDisabled } from "@/lib/supabase/server";
+import { sessionUserId } from "@/lib/supabase/session";
+import { getTeacherAssignments } from "@/lib/queries";
 import { ACT_AS_COOKIE, ROLE_COOKIE, parseTestRole } from "@/lib/testing-mode";
 import type { Teacher } from "@/lib/types";
 
@@ -87,17 +89,24 @@ export const requireTeacher = cache(async function requireTeacher(): Promise<Cur
     return admin ? withSchoolName(admin) : TEST_ADMIN;
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const userId = await sessionUserId(supabase);
+  if (!userId) redirect("/login");
 
-  if (!user) redirect("/login");
+  // Start on their classes at the same time: nearly every page asks for
+  // them next, and getTeacherAssignments() is cached per request, so the
+  // page's own call picks up this one instead of waiting a second time.
+  void getTeacherAssignments(userId);
 
+  // This query is what actually proves who they are: it runs with the
+  // session's own token, which Supabase verifies, so a forged or edited
+  // cookie gets nothing back. A teacher switched off on the roster is
+  // turned away even if they're still signed in.
   const { data: teacher } = await supabase
     .from("teachers")
     .select("*, schools(name)")
-    .eq("id", user.id)
-    .single();
+    .eq("id", userId)
+    .eq("active", true)
+    .maybeSingle();
 
   if (!teacher) redirect("/login");
 

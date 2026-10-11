@@ -16,7 +16,6 @@ import { Badge } from "@/components/ui/badge";
 import { SubjectAverageChart } from "@/components/charts/lazy-charts";
 
 export default async function DashboardPage() {
-  const teacher = await requireTeacher();
   const supabase = await createClient();
 
   const schoolYear = await getCurrentSchoolYear();
@@ -24,24 +23,38 @@ export default async function DashboardPage() {
   const currentQuarter = quarters.length ? findCurrentQuarter(quarters) : null;
   const currentWeek = currentQuarter ? weekNumberInQuarter(currentQuarter) : null;
 
-  // Everything below is independent, so it all goes out at once. Run
-  // one after another these were half a dozen serial round trips to
-  // Singapore before a single tile appeared.
+  // Everything that doesn't depend on who's asking goes out straight
+  // away, alongside the teacher lookup rather than after it — row-level
+  // security already limits each of these to what this person may see.
+  // (Supabase queries only start once something awaits them, hence the
+  // Promise.resolve.)
+  const studentCountP = Promise.resolve(
+    supabase.from("students").select("*", { count: "exact", head: true }).eq("status", "active"),
+  );
+  const gradesP = currentQuarter
+    ? Promise.resolve(
+        supabase.from("quarterly_grades").select("subject_name, quarterly_grade").eq("quarter_id", currentQuarter.id),
+      )
+    : Promise.resolve({ data: [] as { subject_name: string; quarterly_grade: number | null }[] });
+  const summaryP =
+    currentQuarter && schoolYear
+      ? Promise.resolve(
+          supabase
+            .from("student_attendance_summary")
+            .select("student_id, effective_absences, should_be_dropped, at_warning")
+            .eq("school_year_id", schoolYear.id)
+            .eq("at_warning", true),
+        )
+      : Promise.resolve({ data: [] as { student_id: string; effective_absences: number; should_be_dropped: boolean }[] });
+
+  const teacher = await requireTeacher();
   const needsCompliance = Boolean(currentQuarter && currentWeek && !teacher.is_master_admin && !teacher.is_head_teacher);
 
   const [{ count: studentCount }, assignments, gradesResult, summaryResult, countsResult] = await Promise.all([
-    supabase.from("students").select("*", { count: "exact", head: true }).eq("status", "active"),
+    studentCountP,
     getTeacherAssignments(teacher.id),
-    currentQuarter
-      ? supabase.from("quarterly_grades").select("subject_name, quarterly_grade").eq("quarter_id", currentQuarter.id)
-      : Promise.resolve({ data: [] as { subject_name: string; quarterly_grade: number | null }[] }),
-    currentQuarter && schoolYear
-      ? supabase
-          .from("student_attendance_summary")
-          .select("student_id, effective_absences, should_be_dropped, at_warning")
-          .eq("school_year_id", schoolYear.id)
-          .eq("at_warning", true)
-      : Promise.resolve({ data: [] as { student_id: string; effective_absences: number; should_be_dropped: boolean }[] }),
+    gradesP,
+    summaryP,
     needsCompliance
       ? supabase
           .from("weekly_entry_counts")

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { sessionUserId } from "@/lib/supabase/session";
 import type { AttendanceStatus } from "@/lib/types";
 
 export type AttendanceEntry = { studentId: string; am: AttendanceStatus | null; pm: AttendanceStatus | null };
@@ -13,19 +14,17 @@ export async function saveAttendance(input: {
   entries: AttendanceEntry[];
 }): Promise<SaveResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const userId = await sessionUserId(supabase);
 
   const isFriday = new Date(input.date + "T00:00:00").getDay() === 5;
 
   const rows: { student_id: string; school_year_id: string; attendance_date: string; session: "am" | "pm"; status: AttendanceStatus; recorded_by?: string }[] = [];
   for (const e of input.entries) {
     if (e.am) {
-      rows.push({ student_id: e.studentId, school_year_id: input.schoolYearId, attendance_date: input.date, session: "am", status: e.am, recorded_by: user?.id });
+      rows.push({ student_id: e.studentId, school_year_id: input.schoolYearId, attendance_date: input.date, session: "am", status: e.am, recorded_by: userId ?? undefined });
     }
     if (e.pm && !isFriday) {
-      rows.push({ student_id: e.studentId, school_year_id: input.schoolYearId, attendance_date: input.date, session: "pm", status: e.pm, recorded_by: user?.id });
+      rows.push({ student_id: e.studentId, school_year_id: input.schoolYearId, attendance_date: input.date, session: "pm", status: e.pm, recorded_by: userId ?? undefined });
     }
   }
 

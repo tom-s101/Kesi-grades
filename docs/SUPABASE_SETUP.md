@@ -161,6 +161,20 @@ the repo). Set these environment variables on the host:
   `docs/WHATSAPP_INTEGRATION.md`) — the app runs fine without them, it just
   logs instead of sending.
 
+### Speed: keep the server next to the database
+
+Every page asks Supabase for data, so the distance between the site's
+server and the database is paid on every tap. Netlify runs the server
+in the US by default; if your Supabase project is in Singapore, each
+request crosses the Pacific several times.
+
+- In Netlify: **Site configuration → Functions → Region** (wording may
+  differ slightly) — pick the region matching your Supabase project's
+  (Supabase: **Project Settings → General → Region**). Redeploy after.
+- `netlify/functions/keep-warm.mts` pings the site every five minutes so
+  a teacher doesn't wait for the server to start up after a quiet spell.
+  Netlify runs it automatically; nothing to set up.
+
 ## 6b. Login vs. open testing mode
 
 **The app requires sign-in.** Teachers type their name and password on

@@ -12,25 +12,20 @@ import { StudentForm } from "@/components/students/student-form";
 
 export default async function StudentProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const teacher = await requireTeacher();
   const supabase = await createClient();
-
-  const { data: studentRaw } = await supabase
-    .from("students")
-    .select("*, grade_levels(name), schools(name), class_sections(name)")
-    .eq("id", id)
-    .single();
-
-  if (!studentRaw) notFound();
-  const student = studentRaw as unknown as import("@/lib/types").Student & {
-    grade_levels: { name: string } | null;
-    schools: { name: string } | null;
-    class_sections: { name: string } | null;
-  };
-
   const schoolYear = await getCurrentSchoolYear();
 
-  const [{ data: summary }, { data: grades }] = await Promise.all([
+  // Everything here hangs off the id in the address, so it all goes out
+  // at once rather than the student first and their records after.
+  // Row-level security decides what comes back, so nothing has to wait
+  // on the teacher lookup either.
+  const [teacher, { data: studentRaw }, { data: summary }, { data: grades }] = await Promise.all([
+    requireTeacher(),
+    supabase
+      .from("students")
+      .select("*, grade_levels(name), schools(name), class_sections(name)")
+      .eq("id", id)
+      .single(),
     schoolYear
       ? supabase
           .from("student_attendance_summary")
@@ -45,6 +40,13 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
       .eq("student_id", id)
       .order("quarter_number"),
   ]);
+
+  if (!studentRaw) notFound();
+  const student = studentRaw as unknown as import("@/lib/types").Student & {
+    grade_levels: { name: string } | null;
+    schools: { name: string } | null;
+    class_sections: { name: string } | null;
+  };
 
   const canEditSensitive = teacher.is_head_teacher || teacher.is_master_admin;
   const age = ageFromBirthdate(student.birthdate);
