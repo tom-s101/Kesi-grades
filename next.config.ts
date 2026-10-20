@@ -14,9 +14,14 @@ const nextConfig: NextConfig = {
     // long, long enough that stepping into a student and back doesn't
     // rebuild the whole list. Server Actions clear this cache outright
     // via revalidatePath, so your own edits are never stale.
+    //
+    // `static` is also how long a page loaded in the background
+    // (components/layout/prefetch-pages.tsx) stays usable: long enough to
+    // make the next tap instant, short enough that another teacher's
+    // changes show up within a minute and a half.
     staleTimes: {
       dynamic: 15,
-      static: 180,
+      static: 90,
     },
   },
 

@@ -7,6 +7,7 @@ import { Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { SectionLoader } from "@/components/ui/loader";
 import { saveAttendance } from "@/app/(app)/attendance/actions";
 import type { AttendanceStatus } from "@/lib/types";
 
@@ -147,6 +148,15 @@ export function AttendanceClient({
         )}
       </Card>
 
+      {/* Switching class (or week, or date): the old sheet stays up, dimmed,
+          with the loader over it until the new one arrives. */}
+      {loading && (
+        <div className="relative z-10 h-0">
+          <div className="absolute inset-x-0 top-6 flex justify-center">
+            <SectionLoader label="Loading" className="rounded-2xl bg-surface-raised/95 px-8 py-4 shadow-elev-2" />
+          </div>
+        </div>
+      )}
       <div className={cn("transition-opacity", loading && "pointer-events-none opacity-50")}>
         {students.length === 0 ? (
           <Card className="px-4 py-10 text-center text-sm text-text-faint">No active students in this class.</Card>

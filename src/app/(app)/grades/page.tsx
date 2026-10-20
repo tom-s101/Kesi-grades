@@ -1,8 +1,10 @@
-import { requireTeacher } from "@/lib/auth";
+import { Suspense } from "react";
+import { requireTeacher, type CurrentTeacher } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentSchoolYear, getQuarters, getSectionOptions, getSubjectOptionsForSection } from "@/lib/queries";
 import { findCurrentQuarter, totalWeeksInQuarter, weekNumberInQuarter } from "@/lib/quarters";
 import { Topbar } from "@/components/layout/topbar";
+import { SectionLoader } from "@/components/ui/loader";
 import { Card, CardContent } from "@/components/ui/card";
 import { GradeEntryClient } from "@/components/grades/grade-entry-client";
 
@@ -12,6 +14,27 @@ export default async function GradesPage({
   searchParams: Promise<{ section?: string; subject?: string; quarter?: string; mode?: string; week?: string }>;
 }) {
   const teacher = await requireTeacher();
+
+  // The header shows straight away; the class sheet streams in behind it.
+  // Switching class or week keeps the current sheet up, dimmed, until the
+  // new one arrives (see the client component).
+  return (
+    <>
+      <Topbar teacher={teacher} title="Grades" />
+      <Suspense fallback={<main className="flex-1 p-4 lg:p-8"><SectionLoader label="Loading grades" /></main>}>
+        <GradesBody teacher={teacher} searchParams={searchParams} />
+      </Suspense>
+    </>
+  );
+}
+
+async function GradesBody({
+  teacher,
+  searchParams,
+}: {
+  teacher: CurrentTeacher;
+  searchParams: Promise<{ section?: string; subject?: string; quarter?: string; mode?: string; week?: string }>;
+}) {
   const sp = await searchParams;
   const supabase = await createClient();
 
@@ -22,7 +45,6 @@ export default async function GradesPage({
   if (!schoolYear || sections.length === 0 || quarters.length === 0) {
     return (
       <>
-        <Topbar teacher={teacher} title="Grades" />
         <main className="flex-1 p-4 lg:p-8">
           <Card>
             <CardContent className="py-10 text-center text-text-soft">
@@ -42,7 +64,6 @@ export default async function GradesPage({
   if (subjects.length === 0) {
     return (
       <>
-        <Topbar teacher={teacher} title="Grades" />
         <main className="flex-1 p-4 lg:p-8">
           <Card>
             <CardContent className="py-10 text-center text-text-soft">

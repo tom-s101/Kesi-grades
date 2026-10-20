@@ -3,6 +3,7 @@ import { requireTeacher } from "@/lib/auth";
 import { PasswordPrompt } from "@/components/auth/change-password-dialog";
 import { PASSWORD_LATER_COOKIE } from "@/lib/password-prompt";
 import { Sidebar } from "@/components/layout/sidebar";
+import { PrefetchPages } from "@/components/layout/prefetch-pages";
 import { getCurrentSchoolYear } from "@/lib/queries";
 import { openAccessEnabled } from "@/lib/testing-mode";
 
@@ -12,6 +13,11 @@ import { openAccessEnabled } from "@/lib/testing-mode";
 // experimental.staleTimes in next.config.ts. Saving anything clears
 // that outright via revalidatePath.)
 export const dynamic = "force-dynamic";
+
+// The pages every teacher moves between all day; loaded in the
+// background so switching between them is near-instant. (The admin
+// pages are left to load on demand — fewer people, used less often.)
+const EVERYDAY_PAGES = ["/dashboard", "/students", "/attendance", "/grades", "/reports"];
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   // Both are already cached, so this costs nothing the pages below
@@ -38,6 +44,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       />
       <div className="flex min-h-screen flex-1 flex-col">{children}</div>
       {offerPasswordChange && <PasswordPrompt />}
+      <PrefetchPages hrefs={EVERYDAY_PAGES} />
     </div>
   );
 }

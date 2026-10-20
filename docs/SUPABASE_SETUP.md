@@ -61,6 +61,12 @@ it, then move to the next:
     every subject. Who shares which class lives in
     `class_section_shared_teachers`.
 
+14. `0014_faster_access_checks.sql` — same permissions, much faster:
+    access is now worked out once per query instead of once per row, and
+    the quarterly-grades view averages scores in one pass. On a term's
+    worth of data the attendance totals behind the dashboard and the
+    student list went from 3-4 seconds to a few milliseconds.
+
 Every migration is safe to run twice, so if you lose track of where you
 got to, just run them all again from the top.
 

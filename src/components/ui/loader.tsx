@@ -39,9 +39,16 @@ export function Spinner({ className, size = 16 }: { className?: string; size?: n
  * Four squares wandering and changing shape — the loader from the camp
  * registration site, in KESI green. Keyframes in globals.css.
  */
-export function MorphLoader({ className }: { className?: string }) {
+export function MorphLoader({ className, size = 128 }: { className?: string; size?: number }) {
+  // Drawn at 128px and scaled, so a small one moves exactly the same way;
+  // the negative margin gives back the space the scaling frees up.
+  const scale = size / 128;
   return (
-    <div aria-hidden className={cn("relative flex h-32 w-32 items-center justify-center", className)}>
+    <div
+      aria-hidden
+      className={cn("relative flex h-32 w-32 shrink-0 items-center justify-center", className)}
+      style={scale === 1 ? undefined : { transform: `scale(${scale})`, margin: -(128 - size) / 2 }}
+    >
       {[0, 1, 2, 3].map((i) => (
         <span
           key={i}
@@ -59,6 +66,24 @@ export function PageLoader({ label = "Loading" }: { label?: string }) {
     <div className="flex flex-1 flex-col items-center justify-center gap-2 py-20" role="status" aria-live="polite">
       <MorphLoader />
       <p className="text-sm font-medium text-text-soft">{label}…</p>
+    </div>
+  );
+}
+
+/**
+ * One part of a page that's still on its way — the rest of the page is
+ * already showing. Used as a Suspense fallback, so a teacher sees what
+ * has arrived and that more is coming.
+ */
+export function SectionLoader({ label = "Loading", className }: { label?: string; className?: string }) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className={cn("flex flex-col items-center justify-center gap-1 py-10", className)}
+    >
+      <MorphLoader size={64} />
+      <p className="text-xs font-medium text-text-faint">{label}…</p>
     </div>
   );
 }

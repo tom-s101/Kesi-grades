@@ -1,9 +1,11 @@
+import { Suspense } from "react";
 import { Download } from "lucide-react";
-import { requireTeacher } from "@/lib/auth";
+import { requireTeacher, type CurrentTeacher } from "@/lib/auth";
 import { getGradeLevels, getSchools, getStudentListRows } from "@/lib/queries";
 import { Topbar } from "@/components/layout/topbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SectionLoader } from "@/components/ui/loader";
 import { ReportCardPicker } from "@/components/reports/report-card-picker";
 
 export default async function ReportsPage({
@@ -13,12 +15,6 @@ export default async function ReportsPage({
 }) {
   const teacher = await requireTeacher();
   const { school } = await searchParams;
-
-  const [{ rows: students }, gradeLevels, schools] = await Promise.all([
-    getStudentListRows(teacher),
-    getGradeLevels(),
-    teacher.is_master_admin ? getSchools() : Promise.resolve([]),
-  ]);
 
   const canBulkExport = teacher.is_head_teacher || teacher.is_master_admin;
 
@@ -56,15 +52,30 @@ export default async function ReportsPage({
             <CardDescription>Printable, DepEd-style — save as PDF or print directly.</CardDescription>
           </CardHeader>
           <CardContent>
-            <ReportCardPicker
-              students={students}
-              gradeLevels={gradeLevels}
-              schools={schools}
-              showSchool={teacher.is_master_admin}
-            />
+            {/* Exports are usable straight away; the student list
+                for report cards streams in behind them. */}
+            <Suspense fallback={<SectionLoader label="Loading students" />}>
+              <ReportCards teacher={teacher} />
+            </Suspense>
           </CardContent>
         </Card>
       </main>
     </>
+  );
+}
+
+async function ReportCards({ teacher }: { teacher: CurrentTeacher }) {
+  const [{ rows: students }, gradeLevels, schools] = await Promise.all([
+    getStudentListRows(teacher),
+    getGradeLevels(),
+    teacher.is_master_admin ? getSchools() : Promise.resolve([]),
+  ]);
+  return (
+    <ReportCardPicker
+      students={students}
+      gradeLevels={gradeLevels}
+      schools={schools}
+      showSchool={teacher.is_master_admin}
+    />
   );
 }
