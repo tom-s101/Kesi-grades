@@ -88,7 +88,9 @@ export default async function DashboardPage() {
 
   if (needsCompliance) {
     const covered = new Set((countsResult.data ?? []).map((c) => `${c.section_id}:${c.subject_id}:${c.assessment_type}`));
-    for (const a of assignments) {
+    // A class shared among several teachers isn't any one of them's to
+    // chase for weekly entries.
+    for (const a of assignments.filter((x) => !x.shared)) {
       for (const type of ["quiz", "homework_participation"] as const) {
         if (!covered.has(`${a.section_id}:${a.subject_id}:${type}`)) {
           missingWeeklyEntries.push({

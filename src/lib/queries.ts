@@ -59,22 +59,72 @@ export type TeacherAssignment = {
   grade_levels: { code: string; name: string; sort_order: number } | null;
   subjects: { code: string; name: string; sort_order: number } | null;
   class_sections: { name: string } | null;
+  /** A class this teacher shares with others (migration 0013), not their own. */
+  shared?: boolean;
+};
+
+type SharedSectionRow = {
+  section_id: string;
+  class_sections: {
+    name: string;
+    school_id: string;
+    grade_level_id: string;
+    school_year_id: string;
+    grade_levels: { code: string; name: string; sort_order: number } | null;
+  } | null;
 };
 
 /**
  * Grade levels + subjects a given teacher is assigned to (RLS lets
- * anyone read this table).
+ * anyone read this table), plus every subject of any class they share
+ * with other teachers — so a shared class shows up everywhere their own
+ * classes do: the student list, attendance and grade entry.
  *
  * Cached for the length of one request: the layout, the page and the
  * helpers below all ask for it, and requireTeacher() starts it early.
  */
 export const getTeacherAssignments = cache(async (teacherId: string): Promise<TeacherAssignment[]> => {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("class_subject_teachers")
-    .select("*, grade_levels(code, name, sort_order), subjects(code, name, sort_order), class_sections(name)")
-    .eq("teacher_id", teacherId);
-  return (data ?? []) as unknown as TeacherAssignment[];
+  const [{ data }, { data: shared }, subjects] = await Promise.all([
+    supabase
+      .from("class_subject_teachers")
+      .select("*, grade_levels(code, name, sort_order), subjects(code, name, sort_order), class_sections(name)")
+      .eq("teacher_id", teacherId),
+    // Before migration 0013 the table doesn't exist; that just means
+    // nobody shares a class yet.
+    supabase
+      .from("class_section_shared_teachers" as never)
+      .select("section_id, class_sections(name, school_id, grade_level_id, school_year_id, grade_levels(code, name, sort_order))")
+      .eq("teacher_id", teacherId),
+    getSubjects(),
+  ]);
+
+  const own = (data ?? []) as unknown as TeacherAssignment[];
+  const ownKeys = new Set(own.map((a) => `${a.section_id}:${a.subject_id}`));
+
+  const sharedRows = ((shared ?? []) as unknown as SharedSectionRow[]).flatMap((row) => {
+    const cs = row.class_sections;
+    if (!cs) return [];
+    return subjects
+      .filter((sub) => !ownKeys.has(`${row.section_id}:${sub.id}`))
+      .map(
+        (sub): TeacherAssignment => ({
+          id: `shared:${row.section_id}:${sub.id}`,
+          school_id: cs.school_id,
+          grade_level_id: cs.grade_level_id,
+          section_id: row.section_id,
+          subject_id: sub.id,
+          school_year_id: cs.school_year_id,
+          teacher_id: teacherId,
+          grade_levels: cs.grade_levels,
+          subjects: { code: sub.code, name: sub.name, sort_order: sub.sort_order },
+          class_sections: { name: cs.name },
+          shared: true,
+        }),
+      );
+  });
+
+  return [...own, ...sharedRows];
 });
 
 export type StudentListRow = {

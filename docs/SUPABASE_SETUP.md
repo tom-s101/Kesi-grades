@@ -55,6 +55,12 @@ it, then move to the next:
     teacher has picked their own password yet (until they have, they're
     offered the chance each time they sign in).
 
+13. `0013_shared_classes.sql` — lets a class be shared by several
+    teachers (e.g. Baraas Grade 5, which has no teacher of its own): each
+    of them sees its students, takes attendance and enters grades for
+    every subject. Who shares which class lives in
+    `class_section_shared_teachers`.
+
 Every migration is safe to run twice, so if you lose track of where you
 got to, just run them all again from the top.
 
