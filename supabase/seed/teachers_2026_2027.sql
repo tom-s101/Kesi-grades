@@ -13,8 +13,8 @@
 --   2. Fixes the spelling of anyone already on file under the same name,
 --      and moves them to the campus listed here.
 --   3. Gives each teacher their classes, with every subject. When two
---      teachers share a grade (Kindergarten A at Baraas and at
---      Binuangan), the first one listed keeps the grade's existing
+--      teachers share a grade (Kindergarten A at Binuangan), the
+--      first one listed keeps the grade's existing
 --      class (and its students); the second gets a new class named
 --      after them. A head teacher moves students into it from the
 --      student's page.
@@ -42,7 +42,9 @@ create temp table _roster (
 insert into _roster (school_slug, full_name, grade_codes, is_head_teacher) values
   -- Baraas
   ('baraas',       'Ritchelda Pernia',        '{KA}',      false),
-  ('baraas',       'Liezl Canoy',             '{KA}',      false),
+  -- Liezl assists Ritchelda in the same Kindergarten A class rather than
+  -- running one of her own; baraas_ka_assistant.sql shares it with her.
+  ('baraas',       'Liezl Canoy',             '{}',        false),
   ('baraas',       'Marie Victor',            '{KB}',      false),
   ('baraas',       'Norie Gabo',              '{G1}',      false),
   ('baraas',       'Mhae Marcha',             '{G2,G3}',   false),
