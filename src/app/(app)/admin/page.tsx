@@ -147,7 +147,7 @@ export default async function OrgAdminPage({
     <>
       <Topbar teacher={teacher} title="Organization Dashboard" />
       <main className="flex-1 space-y-6 p-4 lg:p-8">
-        <Card className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:p-5">
+        <Card className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:p-5" data-tour="admin-backup">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
             <DatabaseBackup size={18} strokeWidth={1.75} />
           </span>

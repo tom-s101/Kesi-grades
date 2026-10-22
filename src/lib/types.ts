@@ -113,6 +113,8 @@ export interface Database {
           password_changed_at: string | null;
           /** An admin using the site as an ordinary teacher (migration 0015). */
           acting_as_teacher?: boolean;
+          /** When they finished or skipped the welcome tour (migration 0017). */
+          tour_completed_at?: string | null;
         },
         {
           id: string;
@@ -124,6 +126,7 @@ export interface Database {
           active?: boolean;
           password_changed_at?: string | null;
           acting_as_teacher?: boolean;
+          tour_completed_at?: string | null;
         }
       >;
       class_subject_teachers: Table<

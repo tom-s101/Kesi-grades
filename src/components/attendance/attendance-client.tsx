@@ -97,7 +97,7 @@ export function AttendanceClient({
 
   return (
     <div className="space-y-4 pb-24 sm:pb-0">
-      <Card className="p-3 sm:p-4">
+      <Card className="p-3 sm:p-4" data-tour="attendance-controls">
         <div className="space-y-3 sm:flex sm:flex-wrap sm:items-end sm:gap-3 sm:space-y-0">
           <div className="sm:min-w-[200px] sm:flex-1">
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-text-soft">Class</label>
@@ -131,7 +131,13 @@ export function AttendanceClient({
               startNavigation(() => router.push(`/attendance?${params.toString()}`));
             }}
           />
-          <Button variant="secondary" onClick={markAllPresent} type="button" className="h-11 w-full sm:h-10 sm:w-auto">
+          <Button
+            variant="secondary"
+            onClick={markAllPresent}
+            type="button"
+            className="h-11 w-full sm:h-10 sm:w-auto"
+            data-tour="attendance-mark-all"
+          >
             <Users size={15} /> Mark all present
           </Button>
         </div>
@@ -227,7 +233,10 @@ export function AttendanceClient({
       {error && <p className="rounded-lg bg-status-bad-bg px-3 py-2 text-sm text-status-bad">{error}</p>}
 
       {/* Save stays reachable without scrolling past forty-odd students. */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 p-3 backdrop-blur sm:static sm:z-auto sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+      <div
+        data-tour="attendance-save"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 p-3 backdrop-blur sm:static sm:z-auto sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none"
+      >
         <div className="flex items-center gap-3">
           <Button
             onClick={save}

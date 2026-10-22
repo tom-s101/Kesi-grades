@@ -76,6 +76,7 @@
   --elevation-1: 0 1px 2px rgb(var(--shadow-color) / 0.05), 0 1px 1px rgb(var(--shadow-color) / 0.04);
   --elevation-2: 0 1px 2px rgb(var(--shadow-color) / 0.06), 0 4px 12px -2px rgb(var(--shadow-color) / 0.08);
   --elevation-3: 0 2px 4px rgb(var(--shadow-color) / 0.06), 0 12px 28px -6px rgb(var(--shadow-color) / 0.14);
+  --tour-scrim: rgb(16 20 12 / 0.56);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -127,6 +128,7 @@
     --elevation-1: 0 1px 2px rgb(var(--shadow-color) / 0.4);
     --elevation-2: 0 1px 2px rgb(var(--shadow-color) / 0.4), 0 4px 12px -2px rgb(var(--shadow-color) / 0.45);
     --elevation-3: 0 2px 4px rgb(var(--shadow-color) / 0.4), 0 12px 28px -6px rgb(var(--shadow-color) / 0.6);
+    --tour-scrim: rgb(0 0 0 / 0.68);
   }
 }
 
@@ -178,6 +180,7 @@
   --elevation-1: 0 1px 2px rgb(var(--shadow-color) / 0.4);
   --elevation-2: 0 1px 2px rgb(var(--shadow-color) / 0.4), 0 4px 12px -2px rgb(var(--shadow-color) / 0.45);
   --elevation-3: 0 2px 4px rgb(var(--shadow-color) / 0.4), 0 12px 28px -6px rgb(var(--shadow-color) / 0.6);
+  --tour-scrim: rgb(0 0 0 / 0.68);
 }
 
 @theme inline {
@@ -331,6 +334,65 @@ body {
   animation-duration: 2s;
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
+}
+
+/* ---------------------------------------------------------------------
+   Welcome tour — see components/onboarding/welcome-tour.tsx.
+   The spotlight is a box over the part being explained whose enormous
+   shadow dims everything else; it glides from part to part.
+   --------------------------------------------------------------------- */
+.kesi-tour-scrim {
+  background: var(--tour-scrim);
+  animation: kesi-tour-fade 0.2s ease-out both;
+}
+
+.kesi-tour-spotlight {
+  box-shadow:
+    0 0 0 9999px var(--tour-scrim),
+    0 0 0 2px var(--brand),
+    0 0 0 7px color-mix(in srgb, var(--brand) 22%, transparent);
+  transition:
+    left 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    top 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.kesi-tour-card {
+  animation: kesi-tour-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes kesi-tour-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes kesi-tour-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+
+/* Show something in one theme only, without React having to know
+   which theme is on (it can't, on the server). */
+.kesi-when-dark {
+  display: none;
+}
+:root[data-theme="dark"] .kesi-when-dark {
+  display: inline-block;
+}
+:root[data-theme="dark"] .kesi-when-light {
+  display: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .kesi-when-dark {
+    display: inline-block;
+  }
+  :root:not([data-theme="light"]) .kesi-when-light {
+    display: none;
+  }
 }
 
 /* Numbers that sit in columns should not jitter as they change. */

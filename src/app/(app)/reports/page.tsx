@@ -23,7 +23,7 @@ export default async function ReportsPage({
       <Topbar teacher={teacher} title="Reports" />
       <main className="flex-1 space-y-5 p-4 lg:p-8">
         {canBulkExport && (
-          <Card>
+          <Card data-tour="reports-export">
             <CardHeader>
               <CardTitle>Bulk export</CardTitle>
               <CardDescription>
@@ -46,7 +46,7 @@ export default async function ReportsPage({
           </Card>
         )}
 
-        <Card>
+        <Card data-tour="reports-cards">
           <CardHeader>
             <CardTitle>Report cards</CardTitle>
             <CardDescription>Printable, DepEd-style — save as PDF or print directly.</CardDescription>

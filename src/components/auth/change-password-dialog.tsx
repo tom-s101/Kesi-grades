@@ -58,6 +58,8 @@ export function ChangePasswordDialog({ nudge = false, onClose }: { nudge?: boole
 
   return (
     <div
+      // The welcome tour waits until this is closed.
+      data-blocks-tour
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-[2px] sm:items-center"
       onClick={(e) => e.target === e.currentTarget && dismiss()}
     >

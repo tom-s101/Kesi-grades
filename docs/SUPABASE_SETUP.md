@@ -79,6 +79,11 @@ it, then move to the next:
     entry, and a part with no scores at all that quarter is left out
     with the other weights scaled up (exam only = the exam score).
 
+17. `0017_welcome_tour.sql` — remembers who has finished or skipped the
+    welcome tour, so it only starts on its own at a teacher's first
+    sign-in. To show it to everyone again:
+    `update teachers set tour_completed_at = null;`
+
 Every migration is safe to run twice, so if you lose track of where you
 got to, just run them all again from the top.
 

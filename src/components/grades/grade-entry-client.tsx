@@ -295,7 +295,7 @@ export function GradeEntryClient({
   return (
     <div className="space-y-4 pb-24 sm:pb-0">
       <Card className="p-3 sm:p-4">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.4fr_1fr_0.8fr]">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.4fr_1fr_0.8fr]" data-tour="grades-pickers">
           <div>
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-text-soft">Class</label>
             <Select
@@ -345,7 +345,7 @@ export function GradeEntryClient({
 
         {/* Three long labels don't fit across a phone, so the tabs
             scroll sideways rather than wrapping into a ragged block. */}
-        <div className="mt-3 border-t border-border pt-3 sm:mt-4 sm:pt-4">
+        <div className="mt-3 border-t border-border pt-3 sm:mt-4 sm:pt-4" data-tour="grades-tabs">
           <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
             {MODE_TABS.map((t) => (
               <button
@@ -434,7 +434,7 @@ export function GradeEntryClient({
           </div>
         </div>
       )}
-      <div className={cn("transition-opacity", loading && "pointer-events-none opacity-50")}>
+      <div className={cn("transition-opacity", loading && "pointer-events-none opacity-50")} data-tour="grades-sheet">
         {students.length === 0 ? (
           <Card className="px-4 py-10 text-center text-sm text-text-faint">
             No active students in this class yet.
@@ -518,7 +518,10 @@ export function GradeEntryClient({
       )}
 
       {/* Saving happens by itself; the button is there for peace of mind. */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 p-3 backdrop-blur sm:static sm:z-auto sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+      <div
+        data-tour="grades-save"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 p-3 backdrop-blur sm:static sm:z-auto sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none"
+      >
         <div className="flex items-center gap-3">
           <Button
             variant="secondary"

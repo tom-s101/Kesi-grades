@@ -1,13 +1,14 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { chartTooltip } from "@/components/charts/chart-theme";
 import { PASSING_GRADE } from "@/lib/grades";
 
 export function SubjectAverageChart({ data }: { data: { subject: string; average: number }[] }) {
   return (
     <div className="h-72 w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ left: -20, right: 8, top: 8, bottom: 8 }}>
+        <BarChart data={data} margin={{ left: -20, right: 8, top: 22, bottom: 8 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
           <XAxis
             dataKey="subject"
@@ -25,19 +26,13 @@ export function SubjectAverageChart({ data }: { data: { subject: string; average
             axisLine={false}
             tickLine={false}
           />
-          <Tooltip
-            cursor={{ fill: "var(--surface-sunken)" }}
-            contentStyle={{
-              background: "var(--surface-raised)",
-              border: "1px solid var(--border)",
-              borderRadius: 8,
-              fontSize: 12,
-            }}
-          />
+          <Tooltip {...chartTooltip} formatter={(value) => [String(value), "Average"]} />
           <Bar dataKey="average" radius={[6, 6, 0, 0]} maxBarSize={44}>
             {data.map((d, i) => (
               <Cell key={i} fill={d.average >= PASSING_GRADE ? "var(--brand)" : "var(--status-bad)"} />
             ))}
+            {/* The average on each bar, so no one has to tap to read it. */}
+            <LabelList dataKey="average" position="top" style={{ fill: "var(--text)", fontSize: 11, fontWeight: 600 }} />
           </Bar>
         </BarChart>
       </ResponsiveContainer>

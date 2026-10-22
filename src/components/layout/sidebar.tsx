@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { GraduationCap, KeyRound, LogOut, Menu, ShieldAlert, ShieldCheck, X } from "lucide-react";
+import { Compass, GraduationCap, KeyRound, LogOut, Menu, ShieldAlert, ShieldCheck, X } from "lucide-react";
 import { useState, useTransition } from "react";
 import { NAV_ITEMS } from "@/components/layout/nav-config";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/client";
 import { ChangePasswordDialog } from "@/components/auth/change-password-dialog";
 import { setTeacherView } from "@/app/(app)/admin-view-actions";
 import { Spinner } from "@/components/ui/loader";
+import { startTour } from "@/components/onboarding/tour-events";
 
 export function Sidebar({
   isHeadTeacher,
@@ -77,6 +78,7 @@ export function Sidebar({
           <Link
             key={item.href}
             href={item.href}
+            data-tour={`nav-${item.href}`}
             aria-current={active ? "page" : undefined}
             // A drawer left open would cover the page just asked for.
             onClick={() => setOpen(false)}
@@ -113,6 +115,7 @@ export function Sidebar({
         </Link>
         <button
           onClick={() => setOpen((o) => !o)}
+          data-tour="menu-button"
           aria-label={open ? "Close menu" : "Open menu"}
           aria-expanded={open}
           className="-mr-1.5 rounded-lg p-1.5 text-text-soft transition-colors hover:bg-surface-sunken hover:text-text"
@@ -146,7 +149,7 @@ export function Sidebar({
 
         {nav}
 
-        <div className="mt-auto space-y-1 px-3 pt-5">
+        <div className="mt-auto space-y-1 px-3 pt-5" data-tour="account">
           <p className="truncate px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-faint">
             {schoolName ?? "All campuses"}
           </p>
@@ -191,6 +194,18 @@ export function Sidebar({
               <KeyRound size={17} strokeWidth={1.75} /> Change password
             </button>
           )}
+          <button
+            onClick={() => {
+              setOpen(false);
+              startTour();
+            }}
+            className={cn(
+              "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-text-soft transition-colors hover:bg-surface-sunken hover:text-text",
+              openAccess && "mt-2",
+            )}
+          >
+            <Compass size={17} strokeWidth={1.75} /> Take the tour
+          </button>
           {!openAccess && (
             <button
               onClick={signOut}

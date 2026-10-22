@@ -4,6 +4,7 @@ import { PasswordPrompt } from "@/components/auth/change-password-dialog";
 import { PASSWORD_LATER_COOKIE } from "@/lib/password-prompt";
 import { Sidebar } from "@/components/layout/sidebar";
 import { PrefetchPages } from "@/components/layout/prefetch-pages";
+import { WelcomeTour } from "@/components/onboarding/welcome-tour";
 import { getCurrentSchoolYear } from "@/lib/queries";
 import { openAccessEnabled } from "@/lib/testing-mode";
 
@@ -46,6 +47,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="flex min-h-screen flex-1 flex-col">{children}</div>
       {offerPasswordChange && <PasswordPrompt />}
       <PrefetchPages hrefs={EVERYDAY_PAGES} />
+      <WelcomeTour
+        teacherId={teacher.id}
+        audience={{
+          firstName: teacher.full_name.trim().split(/\s+/)[0],
+          isHeadTeacher: teacher.is_head_teacher,
+          isAdmin: teacher.is_master_admin,
+        }}
+        // Once per teacher, on their first sign-in. Never by itself in
+        // open testing mode, where everyone is a stand-in.
+        autoStart={
+          openAccess ? "no" : teacher.tour_completed_at === undefined ? "unknown" : teacher.tour_completed_at ? "no" : "yes"
+        }
+      />
     </div>
   );
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,28 +14,23 @@ function applyTheme(theme: Theme) {
   }
 }
 
-/**
- * Reads the theme ThemeScript already stamped on <html> before hydration.
- * Only correct on the client — the lazy initializer runs during the
- * client's hydration render too, so no post-mount effect/setState is
- * needed. Server and client can legitimately disagree here (the server
- * has no window), so the rendered icon is wrapped with
- * suppressHydrationWarning below.
- */
-function initialTheme(): Theme {
-  if (typeof document === "undefined") return "light";
-  const current = document.documentElement.getAttribute("data-theme") as Theme | null;
-  if (current) return current;
+/** The theme showing right now: what ThemeScript stamped on <html>, else the OS preference. */
+function currentTheme(): Theme {
+  const stamped = document.documentElement.getAttribute("data-theme") as Theme | null;
+  if (stamped) return stamped;
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
+/**
+ * Both icons are always drawn and CSS shows the right one (see
+ * .kesi-when-dark / .kesi-when-light in globals.css). The server can't
+ * know a phone is in dark mode, so choosing the icon in React made the
+ * server and the browser draw different things — a hydration error on
+ * every dark-mode page load.
+ */
 export function ThemeToggle({ className }: { className?: string }) {
-  const [theme, setTheme] = useState<Theme>(initialTheme);
-
   function toggle() {
-    const next = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    applyTheme(next);
+    applyTheme(currentTheme() === "dark" ? "light" : "dark");
   }
 
   return (
@@ -49,7 +43,8 @@ export function ThemeToggle({ className }: { className?: string }) {
         className,
       )}
     >
-      <span suppressHydrationWarning>{theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}</span>
+      <Sun size={16} className="kesi-when-dark" />
+      <Moon size={16} className="kesi-when-light" />
     </button>
   );
 }

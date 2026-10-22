@@ -151,7 +151,7 @@ export default async function DashboardPage() {
           <p className="text-sm text-text-soft">No active quarter today — check the school calendar.</p>
         )}
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" data-tour="dashboard-stats">
           <Suspense fallback={<TileLoading label="Active students" icon={Users} />}>
             <StudentCountTile />
           </Suspense>
@@ -167,7 +167,7 @@ export default async function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <Card className="lg:col-span-2">
+          <Card className="lg:col-span-2" data-tour="dashboard-chart">
             <CardHeader>
               <CardTitle>Subject averages</CardTitle>
               <CardDescription>Across the students you can see.</CardDescription>
@@ -179,7 +179,7 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card data-tour="dashboard-watch">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <AlertTriangle size={16} className="text-status-warn" /> Attendance watch list

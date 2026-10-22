@@ -27,9 +27,11 @@ export default async function StudentsPage() {
           </div>
         )}
 
-        <Suspense fallback={<SectionLoader label="Loading students" />}>
-          <StudentList teacher={teacher} />
-        </Suspense>
+        <div data-tour="students-list">
+          <Suspense fallback={<SectionLoader label="Loading students" />}>
+            <StudentList teacher={teacher} />
+          </Suspense>
+        </div>
       </main>
     </>
   );
