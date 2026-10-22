@@ -74,6 +74,11 @@ it, then move to the next:
     teacher view from SQL:
     `update teachers set acting_as_teacher = true where full_name = 'Tom Imperio';`
 
+16. `0016_grades_from_entered_scores.sql` — a quarterly grade uses only
+    the scores entered: quiz and homework averages skip weeks with no
+    entry, and a part with no scores at all that quarter is left out
+    with the other weights scaled up (exam only = the exam score).
+
 Every migration is safe to run twice, so if you lose track of where you
 got to, just run them all again from the top.
 

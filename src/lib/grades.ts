@@ -1,4 +1,4 @@
-/** Grade-computation helpers mirroring supabase/migrations/0003_views.sql
+/** Grade-computation helpers mirroring the quarterly_grades view (latest: 0016)
  *  (quarterly_grades / final_grades) — used client-side for live previews
  *  before a save round-trips to the database. */
 
@@ -23,15 +23,19 @@ export function computeQuarterlyGrade(input: {
   const weights = input.weights ?? DEFAULT_WEIGHTS;
   if (examPercentage === null) return null;
 
+  // Averages over the scores entered only; a part with none at all is
+  // left out and the other weights scaled back up (migration 0016).
   const quizAvg = average(quizPercentages);
   const hwAvg = average(homeworkPercentages);
 
-  const grade = examPercentage * weights.exam + quizAvg * weights.quiz + hwAvg * weights.homework;
-  return Math.round(grade * 100) / 100;
+  const total =
+    examPercentage * weights.exam + (quizAvg ?? 0) * weights.quiz + (hwAvg ?? 0) * weights.homework;
+  const weight = weights.exam + (quizAvg === null ? 0 : weights.quiz) + (hwAvg === null ? 0 : weights.homework);
+  return Math.round((total / weight) * 100) / 100;
 }
 
-function average(values: number[]): number {
-  if (!values.length) return 0;
+function average(values: number[]): number | null {
+  if (!values.length) return null;
   return values.reduce((a, b) => a + b, 0) / values.length;
 }
 
@@ -45,4 +49,9 @@ export function remarkFor(grade: number | null): { label: string; tone: "good" |
   return { label: "Did Not Meet Expectations", tone: "bad" };
 }
 
-export const PASSING_GRADE = 75;
+/**
+ * KESI's passing mark, for every subject. (DepEd's own is 75; the school
+ * sets a higher bar.) Used by the dashboard, the Organization page, the
+ * subject chart's colouring and the report card.
+ */
+export const PASSING_GRADE = 80;

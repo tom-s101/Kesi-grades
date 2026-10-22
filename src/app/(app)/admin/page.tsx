@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { AlertTriangle, GraduationCap, TrendingUp, Users } from "lucide-react";
 import { requireTeacher } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentSchoolYear, getGradeLevels, getSchools, getSubjects } from "@/lib/queries";
+import { getCurrentSchoolYear, getGradeLevels, getGradesQuarter, getSchools, getSubjects } from "@/lib/queries";
 import { findCurrentQuarter, weekNumberInQuarter } from "@/lib/quarters";
 import { PASSING_GRADE } from "@/lib/grades";
 import { Topbar } from "@/components/layout/topbar";
@@ -39,13 +39,15 @@ export default async function OrgAdminPage({
   const quarters = schoolYear ? await (await import("@/lib/queries")).getQuarters(schoolYear.id) : [];
   const currentQuarter = findCurrentQuarter(quarters);
   const currentWeek = currentQuarter ? weekNumberInQuarter(currentQuarter) : null;
+  // Grades come from the latest quarter that has any — see getGradesQuarter().
+  const gradesQuarter = schoolYear ? (await getGradesQuarter(schoolYear.id, currentQuarter?.id ?? null))?.quarter ?? null : null;
 
   let gradedRows: { student_id: string; subject_id: string; quarterly_grade: number | null }[] = [];
-  if (currentQuarter && studentIds.length) {
+  if (gradesQuarter && studentIds.length) {
     let gq = supabase
       .from("quarterly_grades")
       .select("student_id, subject_id, quarterly_grade")
-      .eq("quarter_id", currentQuarter.id)
+      .eq("quarter_id", gradesQuarter.id)
       .in("student_id", studentIds);
     if (filters.subject) gq = gq.eq("subject_id", filters.subject);
     const { data } = await gq;
@@ -69,12 +71,12 @@ export default async function OrgAdminPage({
 
   // Passing rate per school (unfiltered by school so the chart stays comparative).
   const bySchoolGrades = new Map<string, { total: number; passing: number }>();
-  if (currentQuarter) {
+  if (gradesQuarter) {
     const allStudentIds = filters.grade || filters.school ? undefined : studentIds;
     let gq2 = supabase
       .from("quarterly_grades")
       .select("student_id, quarterly_grade")
-      .eq("quarter_id", currentQuarter.id);
+      .eq("quarter_id", gradesQuarter.id);
     if (allStudentIds) gq2 = gq2.in("student_id", allStudentIds);
     const { data: allGraded } = await gq2;
     const studentSchool = new Map((students ?? []).map((s) => [s.id, s.school_id]));
@@ -159,7 +161,7 @@ export default async function OrgAdminPage({
         <Card>
           <CardHeader>
             <CardTitle>Passing rate by school</CardTitle>
-            <CardDescription>Current quarter, {PASSING_GRADE}+ average.</CardDescription>
+            <CardDescription>{gradesQuarter?.name ?? "Current quarter"}, {PASSING_GRADE}+ average.</CardDescription>
           </CardHeader>
           <CardContent>
             <SchoolPassingRateChart data={passingBySchool} />

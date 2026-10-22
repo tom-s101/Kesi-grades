@@ -30,6 +30,43 @@ export async function getQuarters(schoolYearId: string): Promise<Quarter[]> {
   return load();
 }
 
+/**
+ * The quarter whose grades the dashboard and Organization page should
+ * show: the current one once any exam score is in for it, otherwise the
+ * latest earlier quarter that has some. A quarterly grade only exists
+ * once its exam is recorded, so early in a quarter "this quarter" is
+ * always empty — which made it look as if entered grades had vanished.
+ *
+ * Counts only exam scores this person can see (row-level security), so
+ * a teacher gets their own classes' latest quarter. Cached per request.
+ */
+export const getGradesQuarter = cache(
+  async (
+    schoolYearId: string,
+    currentQuarterId: string | null,
+  ): Promise<{ quarter: Quarter; isCurrent: boolean } | null> => {
+    const quarters = await getQuarters(schoolYearId);
+    const current = quarters.find((q) => q.id === currentQuarterId) ?? null;
+    // Up to and including the current quarter, newest first. Between
+    // quarters (no current one), every quarter already started counts.
+    const today = new Date().toISOString().slice(0, 10);
+    const candidates = quarters
+      .filter((q) => (current ? q.number <= current.number : q.start_date <= today))
+      .sort((a, b) => b.number - a.number);
+    if (candidates.length === 0) return null;
+
+    const supabase = await createClient();
+    const counts = await Promise.all(
+      candidates.map((q) =>
+        supabase.from("quarter_exam_scores").select("*", { count: "exact", head: true }).eq("quarter_id", q.id),
+      ),
+    );
+    const withGrades = candidates.find((_, i) => (counts[i].count ?? 0) > 0);
+    const quarter = withGrades ?? current ?? candidates[0];
+    return { quarter, isCurrent: quarter.id === current?.id };
+  },
+);
+
 export const getSubjects = cacheReference("subjects", async () => {
   const supabase = await createClient();
   const { data } = await supabase.from("subjects").select("*").order("sort_order");

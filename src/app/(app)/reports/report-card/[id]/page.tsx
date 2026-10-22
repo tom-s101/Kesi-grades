@@ -126,7 +126,7 @@ export default async function ReportCardPage({ params }: { params: Promise<{ id:
           </table>
 
           <p className="mt-2 text-[11px] text-neutral-500">
-            Quarterly grade = 85% Quarterly Exam + 12% Quizzes + 3% Homework &amp; Participation. Passing mark: {PASSING_GRADE}.
+            Quarterly grade = 85% Quarterly Exam + 12% Quizzes + 3% Homework &amp; Participation, averaged over the scores entered (a part with no scores is left out). Passing mark: {PASSING_GRADE}.
           </p>
 
           <section className="mt-6 grid grid-cols-3 gap-4 border-t border-neutral-300 pt-4 text-sm">

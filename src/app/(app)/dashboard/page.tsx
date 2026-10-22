@@ -3,7 +3,7 @@ import Link from "next/link";
 import { AlertTriangle, CalendarCheck, ClipboardList, Sprout, Users, type LucideIcon } from "lucide-react";
 import { requireTeacher, type CurrentTeacher } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentSchoolYear, getQuarters, getTeacherAssignments } from "@/lib/queries";
+import { getCurrentSchoolYear, getGradesQuarter, getQuarters, getTeacherAssignments } from "@/lib/queries";
 import { findCurrentQuarter, weekNumberInQuarter } from "@/lib/quarters";
 import { PASSING_GRADE } from "@/lib/grades";
 import { Topbar } from "@/components/layout/topbar";
@@ -21,7 +21,7 @@ import { SubjectAverageChart } from "@/components/charts/lazy-charts";
  * part before anything else is shown.
  *
  * Several pieces need the same figures (the passing-rate tile and the
- * chart both use this quarter's grades; the warnings tile and the watch
+ * chart both use the same quarter's grades; the warnings tile and the watch
  * list both use the attendance warnings), so the loaders below are
  * cached per request: each is asked for once, whichever piece asks
  * first, and the other gets the same answer.
@@ -153,8 +153,8 @@ export default async function DashboardPage() {
           <Suspense fallback={<TileLoading label="Active students" icon={Users} />}>
             <StudentCountTile />
           </Suspense>
-          <Suspense fallback={<TileLoading label="Passing rate this quarter" icon={Sprout} />}>
-            <PassingRateTile quarterId={currentQuarter?.id ?? null} />
+          <Suspense fallback={<TileLoading label="Passing rate" icon={Sprout} />}>
+            <PassingRateTile schoolYearId={schoolYear?.id ?? null} currentQuarterId={currentQuarter?.id ?? null} />
           </Suspense>
           <Suspense fallback={<TileLoading label="Attendance warnings" icon={CalendarCheck} />}>
             <WarningsTile schoolYearId={currentQuarter && schoolYear ? schoolYear.id : null} />
@@ -167,12 +167,12 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>Subject averages this quarter</CardTitle>
+              <CardTitle>Subject averages</CardTitle>
               <CardDescription>Across the students you can see.</CardDescription>
             </CardHeader>
             <CardContent>
               <Suspense fallback={<SectionLoader label="Loading grades" className="h-64" />}>
-                <SubjectChart quarterId={currentQuarter?.id ?? null} />
+                <SubjectChart schoolYearId={schoolYear?.id ?? null} currentQuarterId={currentQuarter?.id ?? null} />
               </Suspense>
             </CardContent>
           </Card>
@@ -224,11 +224,26 @@ async function StudentCountTile() {
   return <StatTile label="Active students" value={String(count)} icon={Users} />;
 }
 
-async function PassingRateTile({ quarterId }: { quarterId: string | null }) {
-  const passingRate = quarterId ? (await loadQuarterGrades(quarterId)).passingRate : null;
+/** Which quarter's grades to show, and its grades — see getGradesQuarter(). */
+async function gradesToShow(schoolYearId: string | null, currentQuarterId: string | null) {
+  if (!schoolYearId) return null;
+  const shown = await getGradesQuarter(schoolYearId, currentQuarterId);
+  if (!shown) return null;
+  return { ...shown, ...(await loadQuarterGrades(shown.quarter.id)) };
+}
+
+async function PassingRateTile({
+  schoolYearId,
+  currentQuarterId,
+}: {
+  schoolYearId: string | null;
+  currentQuarterId: string | null;
+}) {
+  const shown = await gradesToShow(schoolYearId, currentQuarterId);
+  const passingRate = shown?.passingRate ?? null;
   return (
     <StatTile
-      label="Passing rate this quarter"
+      label={shown ? `Passing rate · ${shown.quarter.name}` : "Passing rate"}
       value={passingRate !== null ? `${passingRate}%` : "—"}
       hint={`${PASSING_GRADE}+ average`}
       icon={Sprout}
@@ -271,12 +286,27 @@ async function MissingTile({
   );
 }
 
-async function SubjectChart({ quarterId }: { quarterId: string | null }) {
-  const subjectAverages = quarterId ? (await loadQuarterGrades(quarterId)).subjectAverages : [];
-  return subjectAverages.length ? (
-    <SubjectAverageChart data={subjectAverages} />
-  ) : (
-    <p className="py-8 text-center text-sm text-text-faint">No exam scores recorded yet this quarter.</p>
+async function SubjectChart({
+  schoolYearId,
+  currentQuarterId,
+}: {
+  schoolYearId: string | null;
+  currentQuarterId: string | null;
+}) {
+  const shown = await gradesToShow(schoolYearId, currentQuarterId);
+  if (!shown || shown.subjectAverages.length === 0) {
+    return <p className="py-8 text-center text-sm text-text-faint">No exam scores recorded yet.</p>;
+  }
+  return (
+    <>
+      <p className="mb-3 text-sm text-text-soft">
+        {shown.quarter.name}
+        {!shown.isCurrent && (
+          <span className="text-text-faint"> — the latest quarter with exam scores; this quarter has none yet.</span>
+        )}
+      </p>
+      <SubjectAverageChart data={shown.subjectAverages} />
+    </>
   );
 }
 
