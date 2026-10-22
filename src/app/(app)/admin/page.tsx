@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { AlertTriangle, GraduationCap, TrendingUp, Users } from "lucide-react";
+import { AlertTriangle, DatabaseBackup, Download, GraduationCap, TrendingUp, Users } from "lucide-react";
 import { requireTeacher } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentSchoolYear, getGradeLevels, getGradesQuarter, getSchools, getSubjects } from "@/lib/queries";
@@ -9,6 +9,7 @@ import { Topbar } from "@/components/layout/topbar";
 import { StatTile } from "@/components/dashboard/stat-tile";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { AdminFilters } from "@/components/admin/admin-filters";
 import { SchoolPassingRateChart } from "@/components/charts/lazy-charts";
 
@@ -144,6 +145,25 @@ export default async function OrgAdminPage({
     <>
       <Topbar teacher={teacher} title="Organization Dashboard" />
       <main className="flex-1 space-y-6 p-4 lg:p-8">
+        <Card className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:p-5">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+            <DatabaseBackup size={18} strokeWidth={1.75} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="font-medium text-text">Backup</p>
+            <p className="text-sm text-text-soft">
+              Everything except attendance, in one Excel file — students, teachers, classes, scores and grades. Download one
+              now and then and keep it somewhere safe.
+            </p>
+          </div>
+          {/* A plain link, so the browser handles the download itself. */}
+          <a href="/api/export/backup" download className="shrink-0">
+            <Button type="button" className="h-11 w-full sm:h-10 sm:w-auto">
+              <Download size={16} /> Download backup
+            </Button>
+          </a>
+        </Card>
+
         <AdminFilters schools={schools} gradeLevels={gradeLevels} subjects={subjects} />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
