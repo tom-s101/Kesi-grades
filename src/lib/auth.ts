@@ -9,6 +9,13 @@ import type { Teacher } from "@/lib/types";
 
 export type CurrentTeacher = Teacher & {
   school_name: string | null;
+  /**
+   * They hold admin rights, whether or not they're using them right now.
+   * `is_master_admin` above is what applies at this moment: false while
+   * an admin has switched to teacher view (migration 0015), exactly as
+   * the database's own checks see it.
+   */
+  admin_capable?: boolean;
   /** Overrides the badge in the top bar for the testing personas. */
   role_label?: string;
 };
@@ -48,7 +55,14 @@ const TEST_ADMIN: CurrentTeacher = {
 
 function withSchoolName(row: unknown): CurrentTeacher {
   const { schools, ...rest } = row as Teacher & { schools: { name: string } | null };
-  return { ...rest, school_name: schools?.name ?? null };
+  return {
+    ...rest,
+    // An admin in teacher view is a teacher everywhere in the app — the
+    // same rule auth_is_master_admin() applies in the database.
+    is_master_admin: rest.is_master_admin && !rest.acting_as_teacher,
+    admin_capable: rest.is_master_admin,
+    school_name: schools?.name ?? null,
+  };
 }
 
 /**

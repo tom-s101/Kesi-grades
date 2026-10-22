@@ -3,12 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { KeyRound, LogOut, Menu, ShieldAlert, X } from "lucide-react";
-import { useState } from "react";
+import { GraduationCap, KeyRound, LogOut, Menu, ShieldAlert, ShieldCheck, X } from "lucide-react";
+import { useState, useTransition } from "react";
 import { NAV_ITEMS } from "@/components/layout/nav-config";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { ChangePasswordDialog } from "@/components/auth/change-password-dialog";
+import { setTeacherView } from "@/app/(app)/admin-view-actions";
+import { Spinner } from "@/components/ui/loader";
 
 export function Sidebar({
   isHeadTeacher,
@@ -16,7 +18,13 @@ export function Sidebar({
   openAccess,
   schoolName,
   schoolYearLabel,
+  adminView = null,
 }: {
+  /**
+   * For an admin who can switch to teacher view: which view they're in.
+   * Null for everyone else, who don't get the switch.
+   */
+  adminView?: "admin" | "teacher" | null;
   isHeadTeacher: boolean;
   isMasterAdmin: boolean;
   /** No login to sign out of while the site is open for testing. */
@@ -28,6 +36,21 @@ export function Sidebar({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [switching, startSwitch] = useTransition();
+
+  function switchView() {
+    startSwitch(async () => {
+      const result = await setTeacherView(adminView === "admin");
+      if (!result.ok) {
+        window.alert(result.error);
+        return;
+      }
+      setOpen(false);
+      // The dashboard is the one page both views have.
+      router.push("/dashboard");
+      router.refresh();
+    });
+  }
 
   const items = NAV_ITEMS.filter((item) => {
     if (item.adminOnly) return isMasterAdmin;
@@ -132,13 +155,32 @@ export function Sidebar({
               Open testing mode
             </p>
           )}
+          {!openAccess && adminView && (
+            <button
+              onClick={switchView}
+              disabled={switching}
+              className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-text-soft transition-colors hover:bg-surface-sunken hover:text-text disabled:opacity-60"
+            >
+              {switching ? (
+                <Spinner size={17} />
+              ) : adminView === "admin" ? (
+                <GraduationCap size={17} strokeWidth={1.75} />
+              ) : (
+                <ShieldCheck size={17} strokeWidth={1.75} />
+              )}
+              {switching ? "Switching…" : adminView === "admin" ? "Switch to teacher view" : "Switch to admin view"}
+            </button>
+          )}
           {!openAccess && (
             <button
               onClick={() => {
                 setOpen(false);
                 setChangingPassword(true);
               }}
-              className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-text-soft transition-colors hover:bg-surface-sunken hover:text-text"
+              className={cn(
+                "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-text-soft transition-colors hover:bg-surface-sunken hover:text-text",
+                !adminView && "mt-2",
+              )}
             >
               <KeyRound size={17} strokeWidth={1.75} /> Change password
             </button>

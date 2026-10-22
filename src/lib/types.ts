@@ -111,6 +111,8 @@ export interface Database {
           created_at: string;
           /** Null while they're still on the shared starting password. */
           password_changed_at: string | null;
+          /** An admin using the site as an ordinary teacher (migration 0015). */
+          acting_as_teacher?: boolean;
         },
         {
           id: string;
@@ -121,6 +123,7 @@ export interface Database {
           whatsapp_number?: string | null;
           active?: boolean;
           password_changed_at?: string | null;
+          acting_as_teacher?: boolean;
         }
       >;
       class_subject_teachers: Table<

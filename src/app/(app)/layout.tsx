@@ -41,6 +41,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         openAccess={openAccess}
         schoolName={teacher.school_name}
         schoolYearLabel={schoolYear?.label}
+        adminView={teacher.admin_capable ? (teacher.is_master_admin ? "admin" : "teacher") : null}
       />
       <div className="flex min-h-screen flex-1 flex-col">{children}</div>
       {offerPasswordChange && <PasswordPrompt />}

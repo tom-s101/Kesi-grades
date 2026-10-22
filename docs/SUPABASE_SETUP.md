@@ -67,6 +67,13 @@ it, then move to the next:
     worth of data the attendance totals behind the dashboard and the
     student list went from 3-4 seconds to a few milliseconds.
 
+15. `0015_admin_teacher_view.sql` — lets a master admin who also teaches
+    switch between admin and teacher view from the sidebar ("Switch to
+    teacher view" / "Switch to admin view"). In teacher view they are an
+    ordinary teacher, enforced by the database. To put someone in
+    teacher view from SQL:
+    `update teachers set acting_as_teacher = true where full_name = 'Tom Imperio';`
+
 Every migration is safe to run twice, so if you lose track of where you
 got to, just run them all again from the top.
 
