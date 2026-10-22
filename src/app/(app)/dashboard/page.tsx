@@ -110,7 +110,9 @@ const loadMissingEntries = cache(
     // A class shared among several teachers isn't any one of them's to
     // chase for weekly entries.
     for (const a of assignments.filter((x) => !x.shared)) {
-      for (const type of ["quiz", "homework_participation"] as const) {
+      // Quizzes are weekly; homework & participation is one score a
+      // quarter, so it isn't chased week by week.
+      for (const type of ["quiz"] as const) {
         if (!covered.has(`${a.section_id}:${a.subject_id}:${type}`)) {
           missing.push({
             grade: a.grade_levels?.name ?? "",

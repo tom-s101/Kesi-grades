@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { HOMEWORK_WEEK } from "@/lib/grades";
 import { HELP_TEXT, parseCommand, sendWhatsAppMessage } from "@/lib/whatsapp";
 import { findCurrentQuarter } from "@/lib/quarters";
 import { schoolToday } from "@/lib/school-time";
@@ -183,7 +184,8 @@ async function handleMessage(fromPhone: string, text: string) {
         quarter_id: quarter.id,
         subject_id: subject.id,
         assessment_type: command.assessment,
-        week_number: command.week,
+        // Homework is one score a quarter, kept as week 1, whatever week was sent.
+        week_number: command.assessment === "homework_participation" ? HOMEWORK_WEEK : command.week,
         percentage: command.percentage,
         recorded_by: teacher.id,
       },

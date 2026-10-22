@@ -2,6 +2,12 @@
  *  (quarterly_grades / final_grades) — used client-side for live previews
  *  before a save round-trips to the database. */
 
+/**
+ * Homework & participation is one score per quarter. It lives in
+ * weekly_scores like quizzes do, always as week 1.
+ */
+export const HOMEWORK_WEEK = 1;
+
 export const DEFAULT_WEIGHTS = {
   exam: 0.85,
   quiz: 0.12,

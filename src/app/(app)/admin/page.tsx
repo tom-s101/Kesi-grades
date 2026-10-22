@@ -124,7 +124,9 @@ export default async function OrgAdminPage({
       subjects: { name: string } | null;
       teachers: { full_name: string } | null;
     }[]) {
-      for (const type of ["quiz", "homework_participation"] as const) {
+      // Quizzes are weekly; homework & participation is one score a
+      // quarter, so it isn't chased week by week.
+      for (const type of ["quiz"] as const) {
         const key = `${a.section_id}:${a.subject_id}:${type}`;
         if (!covered.has(key)) {
           missing.push({

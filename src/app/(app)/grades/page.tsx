@@ -7,6 +7,7 @@ import { Topbar } from "@/components/layout/topbar";
 import { SectionLoader } from "@/components/ui/loader";
 import { Card, CardContent } from "@/components/ui/card";
 import { GradeEntryClient } from "@/components/grades/grade-entry-client";
+import { HOMEWORK_WEEK } from "@/lib/grades";
 
 export default async function GradesPage({
   searchParams,
@@ -80,7 +81,12 @@ async function GradesBody({
   const mode = (sp.mode as "quiz" | "homework_participation" | "exam") ?? "quiz";
   const totalWeeks = totalWeeksInQuarter(activeQuarter);
   const currentWeek = weekNumberInQuarter(activeQuarter);
-  const week = Math.min(totalWeeks, Math.max(1, Number(sp.week) || currentWeek || 1));
+  // Homework & participation is one score for the whole quarter, kept
+  // as week 1; quizzes are by week.
+  const week =
+    mode === "homework_participation"
+      ? HOMEWORK_WEEK
+      : Math.min(totalWeeks, Math.max(1, Number(sp.week) || currentWeek || 1));
 
   // The roster and the saved scores are independent, so they go out
   // together — one wait instead of two.
@@ -91,13 +97,22 @@ async function GradesBody({
           .select("student_id, raw_score, max_score, percentage")
           .eq("quarter_id", activeQuarter.id)
           .eq("subject_id", activeSubject.id)
-      : supabase
-          .from("weekly_scores")
-          .select("student_id, raw_score, max_score, percentage")
-          .eq("quarter_id", activeQuarter.id)
-          .eq("subject_id", activeSubject.id)
-          .eq("assessment_type", mode)
-          .eq("week_number", week);
+      : mode === "homework_participation"
+        ? // Every week's, not just week 1: scores entered week by week
+          // before homework became once a quarter are folded together below.
+          supabase
+            .from("weekly_scores")
+            .select("student_id, raw_score, max_score, percentage")
+            .eq("quarter_id", activeQuarter.id)
+            .eq("subject_id", activeSubject.id)
+            .eq("assessment_type", mode)
+        : supabase
+            .from("weekly_scores")
+            .select("student_id, raw_score, max_score, percentage")
+            .eq("quarter_id", activeQuarter.id)
+            .eq("subject_id", activeSubject.id)
+            .eq("assessment_type", mode)
+            .eq("week_number", week);
 
   const [{ data: students }, { data: scoreRows }] = await Promise.all([
     supabase
@@ -109,7 +124,7 @@ async function GradesBody({
     scoreQuery,
   ]);
 
-  const existingScores = scoreRows ?? [];
+  const existingScores = mode === "homework_participation" ? oneScorePerStudent(scoreRows ?? []) : (scoreRows ?? []);
 
   return (
     <>
@@ -137,5 +152,28 @@ async function GradesBody({
         />
       </main>
     </>
+  );
+}
+
+type ScoreRow = { student_id: string; raw_score: number | null; max_score: number | null; percentage: number };
+
+/**
+ * Homework entered week by week (before it became one score a quarter)
+ * shows as their average. The quarterly grade averages all of a
+ * student's homework entries anyway, so one entry at that average gives
+ * exactly the same grade — which is what saving puts in their place.
+ */
+function oneScorePerStudent(rows: ScoreRow[]): ScoreRow[] {
+  const byStudent = new Map<string, ScoreRow[]>();
+  for (const r of rows) byStudent.set(r.student_id, [...(byStudent.get(r.student_id) ?? []), r]);
+  return [...byStudent.entries()].map(([studentId, list]) =>
+    list.length === 1
+      ? list[0]
+      : {
+          student_id: studentId,
+          raw_score: null,
+          max_score: null,
+          percentage: Math.round((list.reduce((sum, r) => sum + Number(r.percentage), 0) / list.length) * 100) / 100,
+        },
   );
 }
