@@ -34,11 +34,11 @@ export default async function LoginPage({
         </div>
         <div className="max-w-md">
           <p className="font-display text-4xl font-medium leading-tight">
-            One record book for five campuses.
+            One record book for six campuses.
           </p>
           <p className="mt-4 text-on-brand/75">
             Attendance, grading, and reporting for Agbalite, Binuangan, Pinagbayanan, Sulong Ipil,
-            and Baraas — built so quarterly grades compute themselves.
+            Baraas, and Kaupawan — built so quarterly grades compute themselves.
           </p>
         </div>
         <p className="text-xs text-on-brand/60">

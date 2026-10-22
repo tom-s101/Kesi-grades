@@ -16,13 +16,42 @@ const karla = Karla({
   display: "swap",
 });
 
+const SITE_TITLE = "KESI — Katutubo Excel Schools";
+const SITE_DESCRIPTION =
+  "Grades, attendance and report cards for the six Katutubo Excel Schools campuses — Agbalite, Binuangan, Pinagbayanan, Sulong Ipil, Baraas and Kaupawan.";
+
+// The card shown when a link is shared in Messenger, WhatsApp, Viber,
+// iMessage and so on. Made from public/brand/kesi-logo.jpg; 1200×630.
+const SHARE_IMAGE = {
+  url: "/brand/og-image.jpg",
+  width: 1200,
+  height: 630,
+  alt: "KESI — grades, attendance and report cards in one place",
+};
+
 export const metadata: Metadata = {
+  metadataBase: new URL("https://kesigrades.org"),
   title: {
-    default: "KESI — Katutubo Excel Schools",
+    default: SITE_TITLE,
     template: "%s — KESI",
   },
-  description:
-    "Records, grading, and attendance for the six Katutubo Excel Schools campuses — Agbalite, Binuangan, Pinagbayanan, Sulong Ipil, Baraas, and Kaupawan.",
+  description: SITE_DESCRIPTION,
+  applicationName: "KESI",
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "KESI Grades",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: [SHARE_IMAGE],
+    locale: "en_PH",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: [SHARE_IMAGE.url],
+  },
 };
 
 export const viewport: Viewport = {
