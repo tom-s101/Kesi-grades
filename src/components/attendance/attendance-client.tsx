@@ -9,6 +9,8 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { SectionLoader } from "@/components/ui/loader";
 import { saveAttendance } from "@/app/(app)/attendance/actions";
+import { ViewSwitch } from "@/components/attendance/attendance-week-client";
+import { mondayOf } from "@/lib/school-days";
 import type { AttendanceStatus } from "@/lib/types";
 
 type ClassOpt = { id: string; label: string };
@@ -122,6 +124,13 @@ export function AttendanceClient({
               className="h-11 w-full rounded-lg border border-border-strong bg-surface-raised px-3 text-base text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60 sm:h-10 sm:text-sm"
             />
           </div>
+          <ViewSwitch
+            view="day"
+            onWeek={() => {
+              const params = new URLSearchParams({ view: "week", class: activeClassId, week: mondayOf(date) });
+              startNavigation(() => router.push(`/attendance?${params.toString()}`));
+            }}
+          />
           <Button variant="secondary" onClick={markAllPresent} type="button" className="h-11 w-full sm:h-10 sm:w-auto">
             <Users size={15} /> Mark all present
           </Button>

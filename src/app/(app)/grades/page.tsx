@@ -113,7 +113,6 @@ async function GradesBody({
 
   return (
     <>
-      <Topbar teacher={teacher} title="Grades" />
       <main className="flex-1 space-y-5 p-4 lg:p-8">
         <GradeEntryClient
           // Remount whenever the thing being graded changes, so the
