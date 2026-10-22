@@ -6,11 +6,10 @@ import { PASSWORD_LATER_COOKIE } from "@/lib/password-prompt";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { openAccessEnabled } from "@/lib/testing-mode";
+import { STARTING_PASSWORD } from "@/lib/starting-password";
 
 export type ChangePasswordResult = { ok: true } | { ok: false; error: string };
 
-/** The shared password everyone starts on — see supabase/seed/teachers_2026_2027.sql. */
-const STARTING_PASSWORD = "trueeducation";
 
 export async function changePassword(newPassword: string, confirmPassword: string): Promise<ChangePasswordResult> {
   if (openAccessEnabled()) return { ok: false, error: "There are no passwords while the site is open for testing." };

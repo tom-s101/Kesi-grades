@@ -63,10 +63,16 @@ export function Sidebar({
     router.push("/login");
   }
 
+  // The closest match only: /admin/logins lights up "Teacher logins",
+  // not "Organization" (/admin) as well.
+  const activeHref = items
+    .filter((item) => pathname === item.href || pathname.startsWith(item.href + "/"))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+
   const nav = (
     <nav className="flex flex-1 flex-col gap-0.5 px-3">
       {items.map((item) => {
-        const active = pathname === item.href || pathname.startsWith(item.href + "/");
+        const active = item.href === activeHref;
         return (
           <Link
             key={item.href}

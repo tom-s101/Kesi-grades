@@ -7,6 +7,7 @@ import {
   FileDown,
   Building2,
   BarChart3,
+  KeyRound,
 } from "lucide-react";
 
 export type NavItem = {
@@ -27,4 +28,5 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/reports", label: "Reports", icon: FileDown },
   { href: "/school", label: "School Admin", icon: Building2, leadershipOnly: true },
   { href: "/admin", label: "Organization", icon: BarChart3, adminOnly: true },
+  { href: "/admin/logins", label: "Teacher logins", icon: KeyRound, adminOnly: true },
 ];

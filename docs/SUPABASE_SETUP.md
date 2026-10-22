@@ -122,7 +122,13 @@ the same any time. The script also gives each teacher their classes, and
 switches off anyone at those campuses who isn't on the list. Re-running it
 never resets a password a teacher has already changed.
 
-To reset one teacher back to the starting password (they forgot theirs):
+An admin (in admin view) can see who is still on the starting password,
+who has chosen their own, and when each teacher last signed in, on
+**Teacher logins** in the sidebar, and reset anyone back to the starting
+password there with one tap. A password a teacher chose themselves can't
+be shown to anyone: Supabase stores only a scrambled form of it.
+
+Or from SQL, to reset one teacher back to the starting password:
 
 ```sql
 update auth.users set encrypted_password = extensions.crypt('trueeducation', extensions.gen_salt('bf'))
